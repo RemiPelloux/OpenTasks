@@ -19,6 +19,10 @@ const CreateTicketSchema = z.object({
   description: z.string().max(5000).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
   status: z.enum(['BACKLOG', 'TODO', 'HANDLE', 'AI_PROCESSING', 'TO_REVIEW', 'IN_PROGRESS', 'DONE', 'CANCELLED']).default('BACKLOG'),
+  targetBranch: z.string().max(100).optional(),
+  aiModel: z.string().max(100).optional(),
+  assigneeId: z.string().optional(),
+  labels: z.array(z.string()).optional(),
 });
 
 const UpdateTicketSchema = z.object({
@@ -100,7 +104,7 @@ ticketRoutes.post('/:projectId', async (req, res) => {
       return;
     }
 
-    const { title, description, priority, status } = parseResult.data;
+    const { title, description, priority, status, targetBranch, aiModel, assigneeId } = parseResult.data;
 
     // Sanitize description for AI safety
     const sanitizedDescription = description ? sanitizePromptInput(description) : null;
@@ -120,6 +124,9 @@ ticketRoutes.post('/:projectId', async (req, res) => {
         position: (maxPosition._max.position ?? 0) + 1,
         projectId,
         createdById: req.session.user!.id,
+        targetBranch,
+        aiModel,
+        assigneeId: assigneeId || null,
       },
       include: {
         assignee: {
@@ -317,7 +324,7 @@ async function queueForAIProcessing(ticketId: string, projectId: string): Promis
           select: {
             cursorApiKeyEncrypted: true,
             githubRepoUrl: true,
-            systemPrompt: true,
+            defaultBranch: true,
           },
         },
       },
@@ -347,17 +354,14 @@ async function queueForAIProcessing(ticketId: string, projectId: string): Promis
 function buildAIPrompt(ticket: {
   title: string;
   description: string | null;
+  targetBranch: string | null;
+  aiModel: string | null;
   project: {
-    systemPrompt: string | null;
     githubRepoUrl: string | null;
+    defaultBranch: string | null;
   };
 }): string {
   let prompt = '';
-
-  // Add system prompt if available
-  if (ticket.project.systemPrompt) {
-    prompt += `System Context:\n${ticket.project.systemPrompt}\n\n`;
-  }
 
   prompt += `Task: ${ticket.title}\n`;
 
@@ -368,6 +372,9 @@ function buildAIPrompt(ticket: {
   if (ticket.project.githubRepoUrl) {
     prompt += `\nRepository: ${ticket.project.githubRepoUrl}\n`;
   }
+
+  const branch = ticket.targetBranch || ticket.project.defaultBranch || 'main';
+  prompt += `\nTarget Branch: ${branch}\n`;
 
   prompt += `\nInstructions: Implement this task, write necessary tests, and create a pull request.`;
 

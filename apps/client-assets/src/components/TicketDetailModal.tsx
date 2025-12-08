@@ -4,7 +4,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import type { Ticket, Priority, ColumnId } from '../types';
+import type { Ticket, Priority, ColumnId, AgentStatus } from '../types';
+import { AgentStatusPanel } from './AgentStatusPanel';
 
 interface TicketDetailModalProps {
   ticket: Ticket;
@@ -37,6 +38,19 @@ export function TicketDetailModal({
   const [status, setStatus] = useState<ColumnId>(ticket.status);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [localAgentStatus, setLocalAgentStatus] = useState<AgentStatus | null>(null);
+
+  // Handle agent status changes from live polling
+  const handleAgentStatusChange = useCallback((newStatus: AgentStatus) => {
+    setLocalAgentStatus(newStatus);
+    
+    // Auto-update ticket status based on agent status
+    if (newStatus === 'FINISHED' && ticket.status === 'AI_PROCESSING') {
+      onUpdate({ ...ticket, status: 'TO_REVIEW' as ColumnId });
+    } else if (newStatus === 'ERROR' && ticket.status === 'AI_PROCESSING') {
+      onUpdate({ ...ticket, status: 'TODO' as ColumnId });
+    }
+  }, [ticket, onUpdate]);
 
   const handleSave = useCallback(async () => {
     if (!title.trim()) {
@@ -168,8 +182,19 @@ export function TicketDetailModal({
             </div>
           )}
 
-          {/* AI Processing Status */}
-          {isProcessing && (
+          {/* AI Agent Status Panel - Live updates */}
+          {ticket.agentId && (
+            <div className="mb-4">
+              <AgentStatusPanel 
+                agentId={ticket.agentId}
+                ticketTitle={ticket.title}
+                onStatusChange={handleAgentStatusChange}
+              />
+            </div>
+          )}
+
+          {/* Fallback AI Processing Status (when no agentId yet) */}
+          {isProcessing && !ticket.agentId && (
             <div className="mb-4 p-4 rounded-md bg-status-processing/10 border border-status-processing/20">
               <div className="flex items-center gap-2 text-status-processing">
                 <div className="ai-spinner" />
@@ -187,8 +212,8 @@ export function TicketDetailModal({
             </div>
           )}
 
-          {/* PR Link */}
-          {ticket.prLink && (
+          {/* PR Link (shown only if not using AgentStatusPanel) */}
+          {ticket.prLink && !ticket.agentId && (
             <div className="mb-4 p-4 rounded-md bg-status-success/10 border border-status-success/20">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-status-success">
@@ -206,8 +231,8 @@ export function TicketDetailModal({
             </div>
           )}
 
-          {/* AI Summary */}
-          {ticket.aiSummary && (
+          {/* AI Summary (shown only if not using AgentStatusPanel) */}
+          {ticket.aiSummary && !ticket.agentId && (
             <div className="mb-4 p-4 rounded-md bg-muted">
               <h4 className="font-medium mb-2">AI Summary</h4>
               <p className="text-sm text-muted-foreground">{ticket.aiSummary}</p>

@@ -23,6 +23,19 @@ const PRIORITIES: { value: Priority; label: string; icon: string; color: string 
   { value: 'URGENT', label: 'Urgent', icon: '⚡', color: 'text-red-400' },
 ];
 
+interface ModelInfo {
+  value: string;
+  label: string;
+  description: string;
+}
+
+const MODEL_INFO: Record<string, ModelInfo> = {
+  'auto': { value: 'auto', label: 'Auto (Recommended)', description: 'Let Cursor choose the best model' },
+  'claude-4-sonnet-thinking': { value: 'claude-4-sonnet-thinking', label: 'Claude 4 Sonnet', description: 'Fast & capable' },
+  'claude-4-opus-thinking': { value: 'claude-4-opus-thinking', label: 'Claude 4 Opus', description: 'Most powerful' },
+  'o3': { value: 'o3', label: 'O3', description: 'OpenAI reasoning model' },
+};
+
 const DESCRIPTION_TEMPLATE = `## What needs to be done
 Describe the task clearly. What is the expected outcome?
 
@@ -57,12 +70,40 @@ export function NewTicketModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   
+  // AI Model selection
+  const [aiModel, setAiModel] = useState<string>('auto');
+  const [availableModels, setAvailableModels] = useState<string[]>(['auto']);
+  const [modelsLoading, setModelsLoading] = useState(true);
+  
   const titleRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Focus title on mount
   useEffect(() => {
     titleRef.current?.focus();
+  }, []);
+
+  // Fetch available models
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const csrfToken = getCsrfToken();
+        const response = await fetch('/api/cursor/models', {
+          headers: { 'X-CSRF-Token': csrfToken },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableModels(data.models || ['auto']);
+        }
+      } catch (err) {
+        console.error('Failed to fetch models:', err);
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+
+    fetchModels();
   }, []);
 
   // Keyboard shortcuts
@@ -137,6 +178,7 @@ export function NewTicketModal({
             targetBranch,
             assigneeId: assigneeId || undefined,
             labels,
+            aiModel: aiModel !== 'auto' ? aiModel : undefined,
           }),
         });
 
@@ -289,6 +331,48 @@ export function NewTicketModal({
                     <span className="ticket-priority-label">{p.label}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* AI Model Selection */}
+            <div className="ticket-field">
+              <label className="ticket-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline w-3.5 h-3.5 mr-1">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                  <path d="M2 17l10 5 10-5" />
+                  <path d="M2 12l10 5 10-5" />
+                </svg>
+                AI Model
+              </label>
+              <div className="ticket-model-selector">
+                {modelsLoading ? (
+                  <div className="ticket-model-loading">
+                    <span className="ticket-spinner-small" />
+                    Loading models...
+                  </div>
+                ) : (
+                  availableModels.map((model) => {
+                    const info = MODEL_INFO[model] || { 
+                      value: model, 
+                      label: model.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                      description: ''
+                    };
+                    return (
+                      <button
+                        key={model}
+                        type="button"
+                        className={`ticket-model-btn ${aiModel === model ? 'active' : ''}`}
+                        onClick={() => setAiModel(model)}
+                        title={info.description}
+                      >
+                        <span className="model-name">{info.label}</span>
+                        {info.description && (
+                          <span className="model-desc">{info.description}</span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </div>
 

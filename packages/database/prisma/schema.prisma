@@ -159,6 +159,9 @@ model Ticket {
   aiSummary   String?      @map("ai_summary") @db.Text
   prLink      String?      @map("pr_link")
   agentId     String?      @map("agent_id")
+  aiModel     String?      @map("ai_model") // Model used for this ticket (e.g., "claude-4-sonnet-thinking")
+  agentBranch String?      @map("agent_branch") // Branch created by the agent
+  agentStatus String?      @map("agent_status") // Current status from Cursor API
   
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")

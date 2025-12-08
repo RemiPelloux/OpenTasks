@@ -14,6 +14,13 @@ export type ColumnId =
   | 'DONE'
   | 'CANCELLED';
 
+export type AgentStatus = 
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'FINISHED'
+  | 'ERROR'
+  | 'CANCELLED';
+
 export interface User {
   id: string;
   name: string;
@@ -32,6 +39,9 @@ export interface Ticket {
   aiSummary?: string;
   prLink?: string;
   agentId?: string;
+  agentStatus?: AgentStatus;
+  agentBranch?: string;
+  aiModel?: string;
   assignee?: User;
   assigneeId?: string;
   createdBy?: User;
@@ -60,4 +70,38 @@ export interface BoardState {
   members: User[];
   branchPresets: BranchPreset[];
   defaultBranch: string;
+}
+
+// Agent API Response Types
+export interface AgentSource {
+  repository: string;
+  ref: string;
+}
+
+export interface AgentTarget {
+  branchName?: string;
+  url?: string;
+  prUrl?: string;
+  autoCreatePr?: boolean;
+}
+
+export interface AgentStatusResponse {
+  id: string;
+  name: string;
+  status: AgentStatus;
+  source?: AgentSource;
+  target?: AgentTarget;
+  summary?: string;
+  createdAt: string;
+}
+
+export interface AgentMessage {
+  id: string;
+  type: 'user_message' | 'assistant_message';
+  text: string;
+}
+
+export interface AgentConversationResponse {
+  id: string;
+  messages: AgentMessage[];
 }
