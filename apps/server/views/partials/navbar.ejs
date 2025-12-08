@@ -16,6 +16,9 @@
       <a href="/dashboard" class="transition-colors hover:text-foreground/80 <%= typeof currentPath !== 'undefined' && currentPath === '/dashboard' ? 'text-foreground' : 'text-foreground/60' %>">
         Dashboard
       </a>
+      <a href="/docs" class="transition-colors hover:text-foreground/80 <%= typeof currentPath !== 'undefined' && currentPath === '/docs' ? 'text-foreground' : 'text-foreground/60' %>">
+        Docs
+      </a>
       <% if (user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) { %>
         <a href="/admin" class="transition-colors hover:text-foreground/80 <%= typeof currentPath !== 'undefined' && currentPath.startsWith('/admin') ? 'text-foreground' : 'text-foreground/60' %>">
           Admin
@@ -70,6 +73,7 @@
   <div id="mobile-menu" class="hidden md:hidden border-t">
     <nav class="container py-4 space-y-2">
       <a href="/dashboard" class="block px-2 py-1.5 rounded-md hover:bg-accent text-sm font-medium">Dashboard</a>
+      <a href="/docs" class="block px-2 py-1.5 rounded-md hover:bg-accent text-sm font-medium">Docs</a>
       <% if (user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) { %>
         <a href="/admin" class="block px-2 py-1.5 rounded-md hover:bg-accent text-sm font-medium">Admin</a>
       <% } %>

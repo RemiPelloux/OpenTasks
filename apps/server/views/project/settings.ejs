@@ -148,16 +148,78 @@ Hotfix=hotfix">${(function() {
     </div>
     
     <!-- Team Members -->
-    <div class="rounded-lg border bg-card">
-      <div class="p-6 border-b">
-        <h3 class="font-semibold">Team Members</h3>
-        <p class="text-sm text-muted-foreground">${project.members.length} member${project.members.length !== 1 ? 's' : ''}</p>
+    <div class="rounded-lg border bg-card" id="team-members-section">
+      <div class="p-6 border-b flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Team Members
+          </h3>
+          <p class="text-sm text-muted-foreground"><span id="member-count">${project.members.length}</span> member${project.members.length !== 1 ? 's' : ''}</p>
+        </div>
+        ${membership.role === 'OWNER' || membership.role === 'ADMIN' ? `
+          <button type="button" id="invite-member-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 mr-2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+            Invite Member
+          </button>
+        ` : ''}
       </div>
-      <div class="divide-y">
+      
+      <!-- Invite Form (hidden by default) -->
+      <div id="invite-form" class="hidden p-6 border-b bg-muted/30">
+        <div class="flex gap-2">
+          <input type="email" id="invite-email" placeholder="Enter email address..." class="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <select id="invite-role" class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="MEMBER">Member</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+          <button type="button" id="send-invite-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 disabled:opacity-50 disabled:cursor-not-allowed">
+            Send Invite
+          </button>
+          <button type="button" id="cancel-invite-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10 px-4">
+            Cancel
+          </button>
+        </div>
+        <p id="invite-error" class="hidden mt-2 text-sm text-destructive"></p>
+        <p id="invite-success" class="hidden mt-2 text-sm text-green-400"></p>
+      </div>
+      
+      <!-- Member List -->
+      <div id="member-list" class="divide-y">
 `;
 
 for (const m of project.members) {
-  bodyContent += renderMemberRow(m);
+  const isOwner = m.role === 'OWNER';
+  const canManage = membership.role === 'OWNER' && !isOwner && m.user.id !== user.id;
+  
+  bodyContent += `
+    <div class="flex items-center justify-between p-4 member-row" data-user-id="${m.user.id}">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted font-medium text-sm">
+          ${m.user.avatarUrl ? '<img src="' + m.user.avatarUrl + '" class="h-10 w-10 rounded-full" alt="">' : m.user.name.substring(0, 2).toUpperCase()}
+        </div>
+        <div>
+          <p class="font-medium">${m.user.name} ${m.user.id === user.id ? '<span class="text-xs text-muted-foreground">(you)</span>' : ''}</p>
+          <p class="text-sm text-muted-foreground">${m.user.email}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        ${canManage ? `
+          <select class="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs role-select" data-user-id="${m.user.id}">
+            <option value="MEMBER" ${m.role === 'MEMBER' ? 'selected' : ''}>Member</option>
+            <option value="ADMIN" ${m.role === 'ADMIN' ? 'selected' : ''}>Admin</option>
+          </select>
+          <button type="button" class="remove-member-btn h-8 w-8 rounded-md border border-destructive/50 text-destructive hover:bg-destructive/10 inline-flex items-center justify-center" data-user-id="${m.user.id}" data-name="${m.user.name}">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </button>
+        ` : `
+          <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${m.role === 'OWNER' ? 'bg-primary/10 text-primary' : m.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-400' : 'bg-muted text-muted-foreground'}">
+            ${m.role}
+          </span>
+        `}
+      </div>
+    </div>
+  `;
 }
 
 bodyContent += `
@@ -310,6 +372,194 @@ bodyContent += `
       loadReposIcon.classList.remove('animate-spin');
     }
   });
+})();
+
+// Member Management
+(function() {
+  const projectId = '${project.id}';
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '${csrfToken}';
+  const isAdminOrOwner = ${membership.role === 'OWNER' || membership.role === 'ADMIN' ? 'true' : 'false'};
+  
+  if (!isAdminOrOwner) return;
+  
+  const inviteBtn = document.getElementById('invite-member-btn');
+  const inviteForm = document.getElementById('invite-form');
+  const inviteEmail = document.getElementById('invite-email');
+  const inviteRole = document.getElementById('invite-role');
+  const sendInviteBtn = document.getElementById('send-invite-btn');
+  const cancelInviteBtn = document.getElementById('cancel-invite-btn');
+  const inviteError = document.getElementById('invite-error');
+  const inviteSuccess = document.getElementById('invite-success');
+  const memberList = document.getElementById('member-list');
+  const memberCount = document.getElementById('member-count');
+  
+  // Toggle invite form
+  if (inviteBtn) {
+    inviteBtn.addEventListener('click', () => {
+      inviteForm.classList.toggle('hidden');
+      inviteEmail.focus();
+    });
+  }
+  
+  if (cancelInviteBtn) {
+    cancelInviteBtn.addEventListener('click', () => {
+      inviteForm.classList.add('hidden');
+      inviteEmail.value = '';
+      inviteError.classList.add('hidden');
+      inviteSuccess.classList.add('hidden');
+    });
+  }
+  
+  // Send invite
+  if (sendInviteBtn) {
+    sendInviteBtn.addEventListener('click', async () => {
+      const email = inviteEmail.value.trim();
+      const role = inviteRole.value;
+      
+      if (!email) {
+        inviteError.textContent = 'Please enter an email address';
+        inviteError.classList.remove('hidden');
+        return;
+      }
+      
+      sendInviteBtn.disabled = true;
+      sendInviteBtn.textContent = 'Sending...';
+      inviteError.classList.add('hidden');
+      inviteSuccess.classList.add('hidden');
+      
+      try {
+        const response = await fetch('/project/' + projectId + '/members/invite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify({ email, role }),
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to invite member');
+        }
+        
+        // Add new member to list
+        const member = data.member;
+        const newRow = document.createElement('div');
+        newRow.className = 'flex items-center justify-between p-4 member-row';
+        newRow.dataset.userId = member.id;
+        newRow.innerHTML = \`
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted font-medium text-sm">
+              \${member.avatarUrl ? '<img src="' + member.avatarUrl + '" class="h-10 w-10 rounded-full" alt="">' : member.name.substring(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p class="font-medium">\${member.name}</p>
+              <p class="text-sm text-muted-foreground">\${member.email}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select class="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs role-select" data-user-id="\${member.id}">
+              <option value="MEMBER" \${member.role === 'MEMBER' ? 'selected' : ''}>Member</option>
+              <option value="ADMIN" \${member.role === 'ADMIN' ? 'selected' : ''}>Admin</option>
+            </select>
+            <button type="button" class="remove-member-btn h-8 w-8 rounded-md border border-destructive/50 text-destructive hover:bg-destructive/10 inline-flex items-center justify-center" data-user-id="\${member.id}" data-name="\${member.name}">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </button>
+          </div>
+        \`;
+        memberList.appendChild(newRow);
+        
+        // Update count
+        const currentCount = parseInt(memberCount.textContent, 10);
+        memberCount.textContent = currentCount + 1;
+        
+        // Reset form
+        inviteEmail.value = '';
+        inviteSuccess.textContent = member.name + ' has been added to the project';
+        inviteSuccess.classList.remove('hidden');
+        
+        // Attach event listeners to new elements
+        attachMemberListeners(newRow);
+        
+      } catch (error) {
+        inviteError.textContent = error.message;
+        inviteError.classList.remove('hidden');
+      } finally {
+        sendInviteBtn.disabled = false;
+        sendInviteBtn.textContent = 'Send Invite';
+      }
+    });
+  }
+  
+  // Attach listeners to role selects and remove buttons
+  function attachMemberListeners(container) {
+    container.querySelectorAll('.role-select').forEach(select => {
+      select.addEventListener('change', async function() {
+        const userId = this.dataset.userId;
+        const role = this.value;
+        
+        try {
+          const response = await fetch('/project/' + projectId + '/members/' + userId + '/role', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({ role }),
+          });
+          
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to update role');
+          }
+        } catch (error) {
+          alert(error.message);
+          // Revert selection
+          window.location.reload();
+        }
+      });
+    });
+    
+    container.querySelectorAll('.remove-member-btn').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const userId = this.dataset.userId;
+        const name = this.dataset.name;
+        
+        if (!confirm('Remove ' + name + ' from this project?')) return;
+        
+        try {
+          const response = await fetch('/project/' + projectId + '/members/' + userId + '/remove', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+            },
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to remove member');
+          }
+          
+          // Remove row
+          const row = this.closest('.member-row');
+          row.remove();
+          
+          // Update count
+          const currentCount = parseInt(memberCount.textContent, 10);
+          memberCount.textContent = currentCount - 1;
+          
+        } catch (error) {
+          alert(error.message);
+        }
+      });
+    });
+  }
+  
+  // Initial attachment
+  attachMemberListeners(memberList);
 })();
 </script>
 `;

@@ -272,3 +272,292 @@ projectRoutes.post('/:id/delete', async (req, res) => {
     res.redirect(`/project/${req.params.id}/settings?error=Failed to delete project`);
   }
 });
+
+/**
+ * API: Get project members
+ */
+projectRoutes.get('/:id/members', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check project access
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: id,
+        userId: req.session.user!.id,
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    const members = await prisma.projectMember.findMany({
+      where: { projectId: id },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+      },
+      orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    res.json({ members: members.map((m) => ({ ...m.user, role: m.role, joinedAt: m.createdAt })) });
+  } catch (error) {
+    console.error('Get members error:', error);
+    res.status(500).json({ error: 'Failed to get members' });
+  }
+});
+
+/**
+ * API: Invite member to project
+ */
+projectRoutes.post('/:id/members/invite', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email, role = 'MEMBER' } = req.body;
+
+    // Check project access (admin or owner only)
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: id,
+        userId: req.session.user!.id,
+        role: { in: ['OWNER', 'ADMIN'] },
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Only admins can invite members' });
+      return;
+    }
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found. They must register first.' });
+      return;
+    }
+
+    // Check if already a member
+    const existing = await prisma.projectMember.findFirst({
+      where: { projectId: id, userId: user.id },
+    });
+
+    if (existing) {
+      res.status(400).json({ error: 'User is already a member of this project' });
+      return;
+    }
+
+    // Validate role
+    const validRoles = ['MEMBER', 'ADMIN'];
+    const memberRole = validRoles.includes(role) ? role : 'MEMBER';
+
+    // Add member
+    await prisma.projectMember.create({
+      data: {
+        projectId: id,
+        userId: user.id,
+        role: memberRole,
+      },
+    });
+
+    res.json({
+      success: true,
+      member: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+        role: memberRole,
+      },
+    });
+  } catch (error) {
+    console.error('Invite member error:', error);
+    res.status(500).json({ error: 'Failed to invite member' });
+  }
+});
+
+/**
+ * API: Update member role
+ */
+projectRoutes.post('/:id/members/:userId/role', async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const { role } = req.body;
+
+    // Check project access (owner only for role changes)
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: id,
+        userId: req.session.user!.id,
+        role: 'OWNER',
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Only the project owner can change roles' });
+      return;
+    }
+
+    // Can't change own role
+    if (userId === req.session.user!.id) {
+      res.status(400).json({ error: 'Cannot change your own role' });
+      return;
+    }
+
+    // Validate role
+    const validRoles = ['MEMBER', 'ADMIN'];
+    if (!validRoles.includes(role)) {
+      res.status(400).json({ error: 'Invalid role' });
+      return;
+    }
+
+    await prisma.projectMember.updateMany({
+      where: { projectId: id, userId },
+      data: { role },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Update member role error:', error);
+    res.status(500).json({ error: 'Failed to update role' });
+  }
+});
+
+/**
+ * API: Remove member from project
+ */
+projectRoutes.post('/:id/members/:userId/remove', async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+
+    // Check project access (admin or owner, or self-removal)
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: id,
+        userId: req.session.user!.id,
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    const isSelfRemoval = userId === req.session.user!.id;
+    const isAdmin = membership.role === 'OWNER' || membership.role === 'ADMIN';
+
+    if (!isSelfRemoval && !isAdmin) {
+      res.status(403).json({ error: 'Only admins can remove other members' });
+      return;
+    }
+
+    // Check target member
+    const targetMember = await prisma.projectMember.findFirst({
+      where: { projectId: id, userId },
+    });
+
+    if (!targetMember) {
+      res.status(404).json({ error: 'Member not found' });
+      return;
+    }
+
+    // Can't remove owner
+    if (targetMember.role === 'OWNER') {
+      res.status(400).json({ error: 'Cannot remove the project owner' });
+      return;
+    }
+
+    await prisma.projectMember.deleteMany({
+      where: { projectId: id, userId },
+    });
+
+    // If self-removal, redirect to dashboard
+    if (isSelfRemoval) {
+      res.json({ success: true, redirect: '/dashboard' });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Remove member error:', error);
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
+});
+
+/**
+ * API: Get board state for real-time sync
+ */
+projectRoutes.get('/:id/board/state', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check project access
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: id,
+        userId: req.session.user!.id,
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    // Get project with tickets
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: {
+        tickets: {
+          include: {
+            assignee: {
+              select: { id: true, name: true, email: true, avatarUrl: true },
+            },
+            createdBy: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: [{ status: 'asc' }, { position: 'asc' }],
+        },
+        members: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, avatarUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    // Parse branch presets
+    let branchPresets: Array<{ name: string; branch: string }> = [];
+    try {
+      branchPresets = project.branchPresets ? JSON.parse(project.branchPresets) : [];
+    } catch {
+      // Ignore parse errors
+    }
+
+    res.json({
+      projectId: project.id,
+      projectName: project.name,
+      tickets: project.tickets,
+      members: project.members.map((m) => ({ ...m.user, role: m.role })),
+      branchPresets,
+      defaultBranch: project.defaultBranch || 'main',
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Get board state error:', error);
+    res.status(500).json({ error: 'Failed to get board state' });
+  }
+});

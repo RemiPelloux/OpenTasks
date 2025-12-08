@@ -12,6 +12,7 @@ import { webhookRoutes } from './webhooks.js';
 import { adminRoutes } from './admin.js';
 import { apiRoutes } from './api.js';
 import { settingsRoutes } from './settings.js';
+import { docsRoutes } from './docs.js';
 
 export function configureRoutes(app: Express): void {
   // Landing page
@@ -39,6 +40,9 @@ export function configureRoutes(app: Express): void {
 
   // User settings routes (protected)
   app.use('/settings', settingsRoutes);
+
+  // Documentation routes (public)
+  app.use('/docs', docsRoutes);
 
   // Internal API routes (protected)
   app.use('/api', apiRoutes);

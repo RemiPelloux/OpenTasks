@@ -648,6 +648,10 @@ body {
   }
 }
 
+.visible {
+  visibility: visible;
+}
+
 .static {
   position: static;
 }
@@ -1014,6 +1018,10 @@ body {
 
 .flex-1 {
   flex: 1 1 0%;
+}
+
+.flex-shrink {
+  flex-shrink: 1;
 }
 
 .shrink-0 {
@@ -1391,6 +1399,10 @@ body {
 
 .bg-slate-400\/10 {
   background-color: rgb(148 163 184 / 0.1);
+}
+
+.bg-muted\/30 {
+  background-color: hsl(var(--muted) / 0.3);
 }
 
 .object-cover {

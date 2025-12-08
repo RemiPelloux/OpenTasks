@@ -81,6 +81,45 @@ export function KanbanBoard() {
     };
   }, []);
 
+  // Real-time sync: Poll for updates every 5 seconds
+  useEffect(() => {
+    if (!boardState?.projectId) return;
+
+    const pollInterval = setInterval(async () => {
+      // Don't poll if user is actively dragging or has modals open
+      if (activeTicket || selectedTicket || isNewTicketOpen) return;
+
+      try {
+        const response = await fetch(`/project/${boardState.projectId}/board/state`);
+        if (!response.ok) return;
+
+        const newState = await response.json() as BoardState;
+        
+        // Only update if there are actual changes (compare ticket count and statuses)
+        const hasChanges = 
+          newState.tickets.length !== boardState.tickets.length ||
+          newState.tickets.some((newTicket) => {
+            const existingTicket = boardState.tickets.find(t => t.id === newTicket.id);
+            return !existingTicket || 
+              existingTicket.status !== newTicket.status ||
+              existingTicket.title !== newTicket.title ||
+              existingTicket.assigneeId !== newTicket.assigneeId;
+          }) ||
+          newState.members?.length !== boardState.members?.length;
+
+        if (hasChanges) {
+          setBoardState(newState);
+          showToast('Board updated', 'success');
+        }
+      } catch (error) {
+        // Silently fail - don't disrupt user experience
+        console.debug('Sync poll failed:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [boardState?.projectId, boardState?.tickets, activeTicket, selectedTicket, isNewTicketOpen]);
+
   // DnD sensors configuration
   const sensors = useSensors(
     useSensor(PointerSensor, {

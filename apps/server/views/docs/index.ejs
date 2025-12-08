@@ -1,0 +1,704 @@
+<%
+const bodyContent = `
+<div class="docs-page">
+  <div class="docs-container">
+    <aside class="docs-sidebar">
+      <nav class="docs-nav">
+        <h3>Getting Started</h3>
+        <a href="#overview" class="docs-nav-link active">Overview</a>
+        <a href="#workflow" class="docs-nav-link">Workflow</a>
+        <a href="#creating-tickets" class="docs-nav-link">Creating Tickets</a>
+        <a href="#branches" class="docs-nav-link">Multi-Branch Projects</a>
+        <a href="#tips" class="docs-nav-link">Tips for Best Results</a>
+      </nav>
+    </aside>
+
+    <main class="docs-content">
+      <!-- Overview -->
+      <section id="overview" class="docs-section">
+        <h1>Welcome to OpenTasks</h1>
+        <p class="docs-lead">
+          OpenTasks is an AI-powered development task manager that connects to 
+          <a href="https://docs.cursor.com/context/cloud-agents" target="_blank" rel="noopener">Cursor Cloud Agent</a> 
+          to automate your coding tasks.
+        </p>
+
+        <div class="docs-card highlight">
+          <div class="docs-card-icon">🎯</div>
+          <div>
+            <h3>How It Works</h3>
+            <p>Create a detailed ticket, drag it to the AI column, and receive a pull request. It's that simple.</p>
+          </div>
+        </div>
+
+        <div class="docs-features">
+          <div class="docs-feature">
+            <div class="docs-feature-icon">🎫</div>
+            <h4>Kanban Board</h4>
+            <p>Drag-and-drop task management with visual status tracking</p>
+          </div>
+          <div class="docs-feature">
+            <div class="docs-feature-icon">🤖</div>
+            <h4>AI Integration</h4>
+            <p>Cursor Cloud Agent implements features and creates PRs</p>
+          </div>
+          <div class="docs-feature">
+            <div class="docs-feature-icon">🔀</div>
+            <h4>Multi-Branch</h4>
+            <p>Configure different branches for backend and frontend</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Workflow -->
+      <section id="workflow" class="docs-section">
+        <h2>The Workflow</h2>
+        
+        <div class="docs-workflow">
+          <div class="docs-workflow-step">
+            <div class="docs-step-number">1</div>
+            <div class="docs-step-content">
+              <h4>Create Ticket</h4>
+              <p>Write a detailed task description with clear acceptance criteria.</p>
+            </div>
+          </div>
+          <div class="docs-workflow-arrow">→</div>
+          <div class="docs-workflow-step">
+            <div class="docs-step-number">2</div>
+            <div class="docs-step-content">
+              <h4>Drag to Handle</h4>
+              <p>Move the ticket to the "Handle" column to trigger the AI agent.</p>
+            </div>
+          </div>
+          <div class="docs-workflow-arrow">→</div>
+          <div class="docs-workflow-step">
+            <div class="docs-step-number">3</div>
+            <div class="docs-step-content">
+              <h4>AI Executes</h4>
+              <p>Cursor Cloud Agent implements the feature and creates a PR.</p>
+            </div>
+          </div>
+          <div class="docs-workflow-arrow">→</div>
+          <div class="docs-workflow-step">
+            <div class="docs-step-number">4</div>
+            <div class="docs-step-content">
+              <h4>Review & Merge</h4>
+              <p>Review the AI-generated code and merge when satisfied.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="docs-diagram">
+          <pre>┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   BACKLOG   │ ──▶ │   HANDLE    │ ──▶ │   REVIEW    │ ──▶ │    DONE     │
+│             │     │  (AI Zone)  │     │   (Human)   │     │             │
+│ Create task │     │ AI working  │     │ Review PR   │     │ Merged! 🎉  │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘</pre>
+        </div>
+      </section>
+
+      <!-- Creating Tickets -->
+      <section id="creating-tickets" class="docs-section">
+        <h2>Creating Effective Tickets</h2>
+        
+        <p>The AI agent needs clear, detailed instructions. Every ticket should include:</p>
+
+        <div class="docs-template">
+          <h4>📝 Ticket Template</h4>
+          <div class="docs-code">
+            <pre>## What needs to be done
+Describe the task clearly. What is the expected outcome?
+
+## Acceptance Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+- [ ] Criterion 3
+
+## Technical Details
+Any specific implementation details, files to modify, or constraints?
+
+## Additional Context
+Links, screenshots, or references that might help.</pre>
+          </div>
+        </div>
+
+        <h3>Example: Good Ticket ✓</h3>
+        <div class="docs-example good">
+          <div class="docs-example-badge">✓ Good</div>
+          <div class="docs-code">
+            <pre>## What needs to be done
+Add a dark mode toggle to the settings page that persists 
+the user's preference across sessions.
+
+## Acceptance Criteria
+- [ ] Toggle switch visible in settings UI
+- [ ] Saves preference to localStorage
+- [ ] Applies theme immediately on toggle
+- [ ] Smooth 200ms transition animation
+
+## Technical Details
+- Modify: src/components/Settings.tsx
+- Add: src/hooks/useTheme.ts
+- Use Tailwind's dark mode classes</pre>
+          </div>
+        </div>
+
+        <h3>Example: Bad Ticket ✗</h3>
+        <div class="docs-example bad">
+          <div class="docs-example-badge">✗ Bad</div>
+          <div class="docs-code">
+            <pre>Add dark mode</pre>
+          </div>
+          <p class="docs-example-why">
+            <strong>Why it's bad:</strong> No context, no acceptance criteria, no technical details.
+          </p>
+        </div>
+      </section>
+
+      <!-- Multi-Branch -->
+      <section id="branches" class="docs-section">
+        <h2>Multi-Branch Projects</h2>
+        
+        <p>OpenTasks supports projects with multiple branches — perfect for projects where backend and frontend live in different branches.</p>
+
+        <h3>Setting Up Branch Presets</h3>
+        <p>When creating or editing a project, configure your branch presets:</p>
+
+        <div class="docs-code" style="margin: 1rem 0;">
+          <pre>Default Branch: main
+
+Branch Presets:
+Backend=master
+Frontend=frontend-dev</pre>
+        </div>
+
+        <h3>Using Branches</h3>
+        <p>When creating a ticket, you'll see quick-select buttons for your configured branches:</p>
+
+        <div class="docs-branch-demo">
+          <div class="docs-branch-btn active">
+            <span>Backend</span>
+            <code>master</code>
+          </div>
+          <div class="docs-branch-btn">
+            <span>Frontend</span>
+            <code>frontend-dev</code>
+          </div>
+        </div>
+
+        <p>The AI agent will create pull requests against the selected branch.</p>
+      </section>
+
+      <!-- Tips -->
+      <section id="tips" class="docs-section">
+        <h2>Tips for Best Results</h2>
+
+        <div class="docs-tips">
+          <div class="docs-tip">
+            <div class="docs-tip-icon">🎯</div>
+            <div>
+              <h4>Be Specific</h4>
+              <p>Instead of "Add button", say "Add a primary blue button with rounded corners in the page header".</p>
+            </div>
+          </div>
+
+          <div class="docs-tip">
+            <div class="docs-tip-icon">📁</div>
+            <div>
+              <h4>Include File Paths</h4>
+              <p>Tell the AI which files to modify: "Update src/components/Header.tsx".</p>
+            </div>
+          </div>
+
+          <div class="docs-tip">
+            <div class="docs-tip-icon">🔍</div>
+            <div>
+              <h4>Keep Scope Small</h4>
+              <p>One feature per ticket. Large refactors often produce worse results.</p>
+            </div>
+          </div>
+
+          <div class="docs-tip">
+            <div class="docs-tip-icon">📎</div>
+            <div>
+              <h4>Add Context</h4>
+              <p>Reference existing patterns: "Follow the same style as the UserCard component".</p>
+            </div>
+          </div>
+
+          <div class="docs-tip">
+            <div class="docs-tip-icon">✅</div>
+            <div>
+              <h4>Define Success</h4>
+              <p>Clear acceptance criteria help the AI understand when the task is complete.</p>
+            </div>
+          </div>
+
+          <div class="docs-tip">
+            <div class="docs-tip-icon">🧪</div>
+            <div>
+              <h4>Mention Tests</h4>
+              <p>If you need tests, say so: "Add unit tests for the new function".</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="docs-cta">
+        <h2>Ready to Start?</h2>
+        <p>Create your first project and let the AI handle the coding.</p>
+        <a href="/dashboard" class="docs-cta-btn">
+          Go to Dashboard
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 1rem; height: 1rem;">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+      </section>
+    </main>
+  </div>
+</div>
+
+<style>
+  .docs-page {
+    min-height: calc(100vh - 3.5rem);
+  }
+
+  .docs-container {
+    display: flex;
+    gap: 3rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .docs-sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 5rem;
+    height: fit-content;
+  }
+
+  .docs-nav h3 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 0.75rem;
+  }
+
+  .docs-nav-link {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    margin: 0.125rem 0;
+    font-size: 0.875rem;
+    color: hsl(var(--muted-foreground));
+    text-decoration: none;
+    border-radius: var(--radius);
+    transition: all 0.15s ease;
+  }
+
+  .docs-nav-link:hover {
+    color: hsl(var(--foreground));
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  .docs-nav-link.active {
+    color: hsl(var(--foreground));
+    background: hsl(var(--muted));
+  }
+
+  .docs-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .docs-section {
+    padding-bottom: 2.5rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .docs-section:last-of-type {
+    border-bottom: none;
+  }
+
+  .docs-section h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+
+  .docs-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .docs-section h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  .docs-section h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.375rem;
+  }
+
+  .docs-section p {
+    color: hsl(var(--muted-foreground));
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .docs-lead {
+    font-size: 1.125rem;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .docs-lead a {
+    color: hsl(217 91% 60%);
+    text-decoration: underline;
+  }
+
+  .docs-card.highlight {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: hsl(var(--primary) / 0.05);
+    border: 1px solid hsl(var(--primary) / 0.2);
+    border-radius: var(--radius);
+    margin: 1.5rem 0;
+  }
+
+  .docs-card-icon {
+    font-size: 1.5rem;
+  }
+
+  .docs-card h3, .docs-card p {
+    margin: 0;
+  }
+
+  .docs-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .docs-feature {
+    padding: 1rem;
+    background: hsl(var(--muted) / 0.3);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  .docs-feature-icon {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .docs-feature p {
+    font-size: 0.8125rem;
+    margin: 0;
+  }
+
+  .docs-workflow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .docs-workflow-step {
+    flex: 1;
+    min-width: 150px;
+    padding: 1rem;
+    background: hsl(var(--muted) / 0.3);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  .docs-step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .docs-step-content p {
+    font-size: 0.75rem;
+    margin: 0;
+  }
+
+  .docs-workflow-arrow {
+    color: hsl(var(--muted-foreground));
+    font-size: 1.25rem;
+    padding-top: 1.5rem;
+  }
+
+  .docs-diagram {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: hsl(var(--muted) / 0.3);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow-x: auto;
+  }
+
+  .docs-diagram pre {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+  }
+
+  .docs-code {
+    background: hsl(var(--muted) / 0.5);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .docs-code pre {
+    margin: 0;
+    padding: 1rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+
+  .docs-template {
+    margin: 1.5rem 0;
+  }
+
+  .docs-template h4 {
+    padding: 0.625rem 1rem;
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    margin: 0;
+  }
+
+  .docs-template .docs-code {
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+
+  .docs-example {
+    margin: 1rem 0 1.5rem;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .docs-example-badge {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .docs-example.good .docs-example-badge {
+    background: hsl(142 76% 36% / 0.2);
+    color: hsl(142 76% 46%);
+  }
+
+  .docs-example.good .docs-code {
+    border-color: hsl(142 76% 36% / 0.3);
+  }
+
+  .docs-example.bad .docs-example-badge {
+    background: hsl(0 84% 60% / 0.2);
+    color: hsl(0 84% 60%);
+  }
+
+  .docs-example.bad .docs-code {
+    border-color: hsl(0 84% 60% / 0.3);
+  }
+
+  .docs-example-why {
+    padding: 0.75rem 1rem;
+    background: hsl(0 84% 60% / 0.05);
+    border: 1px solid hsl(0 84% 60% / 0.2);
+    border-top: none;
+    font-size: 0.8125rem;
+    margin: 0;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .docs-branch-demo {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+
+  .docs-branch-btn {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0.75rem;
+    background: hsl(var(--muted) / 0.5);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  .docs-branch-btn.active {
+    background: hsl(var(--primary) / 0.1);
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
+  .docs-branch-btn span {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .docs-branch-btn code {
+    font-size: 0.625rem;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .docs-tips {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .docs-tip {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    background: hsl(var(--muted) / 0.3);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+  }
+
+  .docs-tip-icon {
+    font-size: 1rem;
+  }
+
+  .docs-tip p {
+    font-size: 0.8125rem;
+    margin: 0;
+  }
+
+  .docs-cta {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: hsl(var(--muted) / 0.3);
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    margin-top: 1.5rem;
+  }
+
+  .docs-cta h2 {
+    margin: 0 0 0.5rem;
+  }
+
+  .docs-cta p {
+    margin: 0 0 1rem;
+  }
+
+  .docs-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    border-radius: var(--radius);
+    transition: all 0.15s ease;
+  }
+
+  .docs-cta-btn:hover {
+    background: hsl(var(--primary) / 0.9);
+  }
+
+  @media (max-width: 768px) {
+    .docs-container {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .docs-sidebar {
+      position: static;
+      width: 100%;
+    }
+
+    .docs-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .docs-nav h3 {
+      width: 100%;
+    }
+
+    .docs-workflow {
+      flex-direction: column;
+    }
+
+    .docs-workflow-arrow {
+      transform: rotate(90deg);
+      padding: 0.25rem 0;
+    }
+
+    .docs-workflow-step {
+      min-width: auto;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const sections = document.querySelectorAll('.docs-section');
+    const navLinks = document.querySelectorAll('.docs-nav-link');
+
+    function updateActiveLink() {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (window.scrollY >= sectionTop - 200) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    }
+
+    window.addEventListener('scroll', updateActiveLink);
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  });
+</script>
+`;
+%>
+<%- include('../layout', { body: bodyContent, title, csrfToken, isAuthenticated: !!user, user, currentPath }) %>
