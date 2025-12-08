@@ -344,36 +344,31 @@ export function NewTicketModal({
                 </svg>
                 AI Model
               </label>
-              <div className="ticket-model-selector">
-                {modelsLoading ? (
-                  <div className="ticket-model-loading">
-                    <span className="ticket-spinner-small" />
-                    Loading models...
-                  </div>
-                ) : (
-                  availableModels.map((model) => {
+              {modelsLoading ? (
+                <div className="ticket-model-loading">
+                  <span className="ticket-spinner-small" />
+                  Loading models...
+                </div>
+              ) : (
+                <select
+                  className="ticket-select"
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                >
+                  {availableModels.map((model) => {
                     const info = MODEL_INFO[model] || { 
                       value: model, 
                       label: model.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                       description: ''
                     };
                     return (
-                      <button
-                        key={model}
-                        type="button"
-                        className={`ticket-model-btn ${aiModel === model ? 'active' : ''}`}
-                        onClick={() => setAiModel(model)}
-                        title={info.description}
-                      >
-                        <span className="model-name">{info.label}</span>
-                        {info.description && (
-                          <span className="model-desc">{info.description}</span>
-                        )}
-                      </button>
+                      <option key={model} value={model}>
+                        {info.label}{info.description ? ` - ${info.description}` : ''}
+                      </option>
                     );
-                  })
-                )}
-              </div>
+                  })}
+                </select>
+              )}
             </div>
 
             {/* Branch Selection */}

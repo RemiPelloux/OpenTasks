@@ -13,6 +13,57 @@ export const apiRoutes = Router();
 apiRoutes.use(requireAuth);
 
 // ============================================
+// Type Definitions for Cursor API Responses
+// ============================================
+
+interface CursorModelsResponse {
+  models: string[];
+}
+
+interface CursorAgentSource {
+  repository: string;
+  ref: string;
+}
+
+interface CursorAgentTarget {
+  branchName?: string;
+  url?: string;
+  prUrl?: string;
+  autoCreatePr?: boolean;
+}
+
+interface CursorAgentStatusResponse {
+  id: string;
+  name: string;
+  status: string;
+  source?: CursorAgentSource;
+  target?: CursorAgentTarget;
+  summary?: string;
+  createdAt: string;
+}
+
+interface CursorAgentMessage {
+  id: string;
+  type: 'user_message' | 'assistant_message';
+  text: string;
+}
+
+interface CursorAgentConversationResponse {
+  id: string;
+  messages: CursorAgentMessage[];
+}
+
+interface CursorRepository {
+  owner: string;
+  name: string;
+  repository: string;
+}
+
+interface CursorRepositoriesResponse {
+  repositories: CursorRepository[];
+}
+
+// ============================================
 // Cursor API Proxy Endpoints
 // ============================================
 
@@ -50,7 +101,7 @@ apiRoutes.get('/cursor/models', async (req, res) => {
       throw new Error(`Cursor API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as CursorModelsResponse;
     
     // Add "Auto" option at the beginning
     res.json({
@@ -116,7 +167,7 @@ apiRoutes.get('/cursor/agents/:agentId/status', async (req, res) => {
       throw new Error(`Cursor API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as CursorAgentStatusResponse;
     
     // Update ticket with latest status and branch info
     if (ticket) {
@@ -143,6 +194,84 @@ apiRoutes.get('/cursor/agents/:agentId/status', async (req, res) => {
   } catch (error) {
     console.error('Cursor agent status error:', error);
     res.status(500).json({ error: 'Failed to fetch agent status' });
+  }
+});
+
+/**
+ * Stop a running agent
+ * POST /api/cursor/agents/:agentId/stop
+ */
+apiRoutes.post('/cursor/agents/:agentId/stop', async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const userId = req.session.user!.id;
+
+    // Find the ticket with this agent ID to get the project's API key
+    const ticket = await prisma.ticket.findFirst({
+      where: { agentId },
+      include: {
+        project: {
+          select: { cursorApiKeyEncrypted: true },
+        },
+      },
+    });
+
+    // Try project API key first, then user's API key
+    let apiKey: string | null = null;
+    
+    if (ticket?.project.cursorApiKeyEncrypted) {
+      apiKey = decrypt(ticket.project.cursorApiKeyEncrypted);
+    } else {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { cursorApiKeyEncrypted: true },
+      });
+      if (user?.cursorApiKeyEncrypted) {
+        apiKey = decrypt(user.cursorApiKeyEncrypted);
+      }
+    }
+
+    if (!apiKey) {
+      res.status(400).json({ error: 'No API key available' });
+      return;
+    }
+
+    const response = await fetch(`https://api.cursor.com/v0/agents/${agentId}/stop`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(apiKey + ':').toString('base64')}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        res.status(404).json({ error: 'Agent not found' });
+        return;
+      }
+      if (response.status === 400) {
+        res.status(400).json({ error: 'Agent is not running' });
+        return;
+      }
+      throw new Error(`Cursor API error: ${response.status}`);
+    }
+
+    const data = await response.json() as { id: string };
+    
+    // Update ticket status
+    if (ticket) {
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: {
+          agentStatus: 'CANCELLED',
+          status: 'TODO', // Move back to TODO so user can retry
+        },
+      });
+    }
+
+    res.json({ id: data.id, message: 'Agent stopped successfully' });
+  } catch (error) {
+    console.error('Stop agent error:', error);
+    res.status(500).json({ error: 'Failed to stop agent' });
   }
 });
 
@@ -200,7 +329,7 @@ apiRoutes.get('/cursor/agents/:agentId/conversation', async (req, res) => {
       throw new Error(`Cursor API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as CursorAgentConversationResponse;
     
     res.json({
       id: data.id,
@@ -234,7 +363,7 @@ apiRoutes.get('/users/search', async (req, res) => {
         where: { projectId: excludeProject },
         select: { userId: true },
       });
-      excludeUserIds = members.map(m => m.userId);
+      excludeUserIds = members.map((m: { userId: string }) => m.userId);
     }
 
     // Search users by name or email
@@ -308,7 +437,7 @@ apiRoutes.post('/cursor/repositories', async (req, res) => {
       throw new Error(`Cursor API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as CursorRepositoriesResponse;
     
     res.json({
       repositories: data.repositories || [],

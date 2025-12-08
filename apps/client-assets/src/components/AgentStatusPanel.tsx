@@ -10,6 +10,7 @@ interface AgentStatusPanelProps {
   agentId: string;
   ticketTitle: string;
   onStatusChange?: (status: AgentStatus) => void;
+  onStop?: () => void;
 }
 
 const STATUS_COLORS: Record<AgentStatus, string> = {
@@ -36,14 +37,62 @@ const STATUS_LABELS: Record<AgentStatus, string> = {
   CANCELLED: 'Cancelled',
 };
 
-export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange }: AgentStatusPanelProps) {
+export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange, onStop }: AgentStatusPanelProps) {
   const [status, setStatus] = useState<AgentStatusResponse | null>(null);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [isStopping, setIsStopping] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Emergency stop handler
+  const handleStop = useCallback(async () => {
+    if (isStopping) return;
+    
+    const confirmed = window.confirm('Are you sure you want to stop the AI agent? This cannot be undone.');
+    if (!confirmed) return;
+
+    setIsStopping(true);
+    try {
+      const csrfToken = getCsrfToken();
+      const response = await fetch(`/api/cursor/agents/${agentId}/stop`, {
+        method: 'POST',
+        headers: { 
+          'X-CSRF-Token': csrfToken,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to stop agent');
+      }
+
+      // Update local status
+      setStatus(prev => prev ? { ...prev, status: 'CANCELLED' } : null);
+      
+      // Stop polling
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+
+      // Notify parent
+      if (onStatusChange) {
+        onStatusChange('CANCELLED');
+      }
+      if (onStop) {
+        onStop();
+      }
+    } catch (err) {
+      console.error('Stop agent error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to stop agent');
+    } finally {
+      setIsStopping(false);
+    }
+  }, [agentId, isStopping, onStatusChange, onStop]);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -192,6 +241,27 @@ export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange }: Agent
           )}
         </div>
         <div className="agent-status-actions">
+          {/* Emergency Stop Button */}
+          {(currentStatus === 'RUNNING' || currentStatus === 'QUEUED') && (
+            <button
+              className="agent-stop-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStop();
+              }}
+              disabled={isStopping}
+              title="Emergency Stop - Stop the AI agent immediately"
+            >
+              {isStopping ? (
+                <span className="agent-spinner-small" />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                  <rect x="6" y="6" width="12" height="12" rx="1" />
+                </svg>
+              )}
+              <span>{isStopping ? 'Stopping...' : 'Stop'}</span>
+            </button>
+          )}
           {status?.target?.url && (
             <a 
               href={status.target.url}
