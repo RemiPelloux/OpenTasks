@@ -47,13 +47,19 @@ async function bootstrap(): Promise<void> {
 
   // Start server
   app.listen(config.port, config.host, () => {
+    const localUrl = `http://localhost:${config.port}`;
+    const networkUrl = config.host === '0.0.0.0' 
+      ? `http://<your-ip>:${config.port}` 
+      : `http://${config.host}:${config.port}`;
+    
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║   🚀 OpenTasks Server Running                             ║
 ║                                                           ║
-║   → Local:   http://${config.host}:${config.port}                       ║
-║   → Mode:    ${config.isProduction ? 'Production' : 'Development'}                              ║
+║   → Local:   ${localUrl.padEnd(35)}║
+║   → Network: ${networkUrl.padEnd(35)}║
+║   → Mode:    ${(config.isProduction ? 'Production' : 'Development').padEnd(35)}║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
     `);

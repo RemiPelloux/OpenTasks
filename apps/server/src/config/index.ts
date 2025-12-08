@@ -28,7 +28,8 @@ function loadConfig(): Config {
 
   return {
     port: parseInt(process.env.PORT || '3000', 10),
-    host: process.env.HOST || 'localhost',
+    // Use 0.0.0.0 to allow external network access (other devices on same network)
+    host: process.env.HOST || '0.0.0.0',
     isProduction,
     isDevelopment: !isProduction,
     session: {

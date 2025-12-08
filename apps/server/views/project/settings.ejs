@@ -132,7 +132,7 @@ Frontend=frontend-dev
 Hotfix=hotfix">${(function() {
             try {
               const presets = JSON.parse(project.branchPresets || '[]');
-              return presets.map(p => p.name + '=' + p.branch).join('\\n');
+              return presets.map(p => p.name + '=' + p.branch).join('\n');
             } catch { return ''; }
           })()}</textarea>
         </div>
@@ -167,14 +167,26 @@ Hotfix=hotfix">${(function() {
       
       <!-- Invite Form (hidden by default) -->
       <div id="invite-form" class="hidden p-6 border-b bg-muted/30">
-        <div class="flex gap-2">
-          <input type="email" id="invite-email" placeholder="Enter email address..." class="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm">
+        <div class="flex gap-2 items-start">
+          <div class="relative flex-1">
+            <input type="text" id="invite-search" placeholder="Search by name or email..." autocomplete="off" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <input type="hidden" id="invite-user-id" value="">
+            <!-- Autocomplete Dropdown -->
+            <div id="invite-autocomplete" class="hidden absolute z-50 w-full mt-1 rounded-md border bg-popover shadow-lg max-h-60 overflow-auto">
+              <div id="invite-results" class="py-1"></div>
+              <div id="invite-no-results" class="hidden px-3 py-2 text-sm text-muted-foreground">No users found</div>
+              <div id="invite-loading" class="hidden px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
+                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Searching...
+              </div>
+            </div>
+          </div>
           <select id="invite-role" class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
             <option value="MEMBER">Member</option>
             <option value="ADMIN">Admin</option>
           </select>
-          <button type="button" id="send-invite-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 disabled:opacity-50 disabled:cursor-not-allowed">
-            Send Invite
+          <button type="button" id="send-invite-btn" disabled class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 disabled:opacity-50 disabled:cursor-not-allowed">
+            Add
           </button>
           <button type="button" id="cancel-invite-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10 px-4">
             Cancel
@@ -374,7 +386,7 @@ bodyContent += `
   });
 })();
 
-// Member Management
+// Member Management with Autocomplete
 (function() {
   const projectId = '${project.id}';
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '${csrfToken}';
@@ -384,7 +396,12 @@ bodyContent += `
   
   const inviteBtn = document.getElementById('invite-member-btn');
   const inviteForm = document.getElementById('invite-form');
-  const inviteEmail = document.getElementById('invite-email');
+  const inviteSearch = document.getElementById('invite-search');
+  const inviteUserId = document.getElementById('invite-user-id');
+  const inviteAutocomplete = document.getElementById('invite-autocomplete');
+  const inviteResults = document.getElementById('invite-results');
+  const inviteNoResults = document.getElementById('invite-no-results');
+  const inviteLoading = document.getElementById('invite-loading');
   const inviteRole = document.getElementById('invite-role');
   const sendInviteBtn = document.getElementById('send-invite-btn');
   const cancelInviteBtn = document.getElementById('cancel-invite-btn');
@@ -393,37 +410,141 @@ bodyContent += `
   const memberList = document.getElementById('member-list');
   const memberCount = document.getElementById('member-count');
   
+  let searchTimeout = null;
+  let selectedUser = null;
+  
   // Toggle invite form
   if (inviteBtn) {
     inviteBtn.addEventListener('click', () => {
       inviteForm.classList.toggle('hidden');
-      inviteEmail.focus();
+      if (!inviteForm.classList.contains('hidden')) {
+        inviteSearch.focus();
+      }
     });
   }
   
   if (cancelInviteBtn) {
     cancelInviteBtn.addEventListener('click', () => {
       inviteForm.classList.add('hidden');
-      inviteEmail.value = '';
-      inviteError.classList.add('hidden');
-      inviteSuccess.classList.add('hidden');
+      resetInviteForm();
     });
+  }
+  
+  function resetInviteForm() {
+    inviteSearch.value = '';
+    inviteUserId.value = '';
+    selectedUser = null;
+    sendInviteBtn.disabled = true;
+    inviteAutocomplete.classList.add('hidden');
+    inviteError.classList.add('hidden');
+    inviteSuccess.classList.add('hidden');
+    inviteSearch.classList.remove('border-green-500');
+  }
+  
+  // Autocomplete search
+  if (inviteSearch) {
+    inviteSearch.addEventListener('input', () => {
+      const query = inviteSearch.value.trim();
+      
+      // Clear previous selection
+      if (selectedUser) {
+        selectedUser = null;
+        inviteUserId.value = '';
+        sendInviteBtn.disabled = true;
+        inviteSearch.classList.remove('border-green-500');
+      }
+      
+      // Debounce search
+      clearTimeout(searchTimeout);
+      
+      if (query.length < 2) {
+        inviteAutocomplete.classList.add('hidden');
+        return;
+      }
+      
+      searchTimeout = setTimeout(() => searchUsers(query), 300);
+    });
+    
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+      if (!inviteSearch.contains(e.target) && !inviteAutocomplete.contains(e.target)) {
+        inviteAutocomplete.classList.add('hidden');
+      }
+    });
+    
+    // Keyboard navigation
+    inviteSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        inviteAutocomplete.classList.add('hidden');
+      }
+    });
+  }
+  
+  async function searchUsers(query) {
+    inviteLoading.classList.remove('hidden');
+    inviteResults.innerHTML = '';
+    inviteNoResults.classList.add('hidden');
+    inviteAutocomplete.classList.remove('hidden');
+    
+    try {
+      const response = await fetch('/api/users/search?q=' + encodeURIComponent(query) + '&excludeProject=' + projectId);
+      const data = await response.json();
+      
+      inviteLoading.classList.add('hidden');
+      
+      if (data.users && data.users.length > 0) {
+        inviteResults.innerHTML = data.users.map(user => \`
+          <button type="button" class="user-result w-full px-3 py-2 text-left hover:bg-muted flex items-center gap-3" data-user-id="\${user.id}" data-email="\${user.email}" data-name="\${user.name}">
+            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted font-medium text-xs">
+              \${user.avatarUrl ? '<img src="' + user.avatarUrl + '" class="h-8 w-8 rounded-full" alt="">' : user.name.substring(0, 2).toUpperCase()}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate">\${user.name}</p>
+              <p class="text-xs text-muted-foreground truncate">\${user.email}</p>
+            </div>
+          </button>
+        \`).join('');
+        
+        // Attach click handlers
+        inviteResults.querySelectorAll('.user-result').forEach(btn => {
+          btn.addEventListener('click', () => selectUser(btn));
+        });
+      } else {
+        inviteNoResults.classList.remove('hidden');
+      }
+    } catch (error) {
+      inviteLoading.classList.add('hidden');
+      inviteNoResults.textContent = 'Error searching users';
+      inviteNoResults.classList.remove('hidden');
+    }
+  }
+  
+  function selectUser(btn) {
+    const userId = btn.dataset.userId;
+    const email = btn.dataset.email;
+    const name = btn.dataset.name;
+    
+    selectedUser = { id: userId, email, name };
+    inviteUserId.value = userId;
+    inviteSearch.value = name + ' (' + email + ')';
+    inviteSearch.classList.add('border-green-500');
+    sendInviteBtn.disabled = false;
+    inviteAutocomplete.classList.add('hidden');
   }
   
   // Send invite
   if (sendInviteBtn) {
     sendInviteBtn.addEventListener('click', async () => {
-      const email = inviteEmail.value.trim();
-      const role = inviteRole.value;
-      
-      if (!email) {
-        inviteError.textContent = 'Please enter an email address';
+      if (!selectedUser) {
+        inviteError.textContent = 'Please select a user from the list';
         inviteError.classList.remove('hidden');
         return;
       }
       
+      const role = inviteRole.value;
+      
       sendInviteBtn.disabled = true;
-      sendInviteBtn.textContent = 'Sending...';
+      sendInviteBtn.textContent = 'Adding...';
       inviteError.classList.add('hidden');
       inviteSuccess.classList.add('hidden');
       
@@ -434,13 +555,13 @@ bodyContent += `
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrfToken,
           },
-          body: JSON.stringify({ email, role }),
+          body: JSON.stringify({ email: selectedUser.email, role }),
         });
         
         const data = await response.json();
         
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to invite member');
+          throw new Error(data.error || 'Failed to add member');
         }
         
         // Add new member to list
@@ -475,7 +596,7 @@ bodyContent += `
         memberCount.textContent = currentCount + 1;
         
         // Reset form
-        inviteEmail.value = '';
+        resetInviteForm();
         inviteSuccess.textContent = member.name + ' has been added to the project';
         inviteSuccess.classList.remove('hidden');
         
@@ -486,8 +607,8 @@ bodyContent += `
         inviteError.textContent = error.message;
         inviteError.classList.remove('hidden');
       } finally {
-        sendInviteBtn.disabled = false;
-        sendInviteBtn.textContent = 'Send Invite';
+        sendInviteBtn.disabled = !selectedUser;
+        sendInviteBtn.textContent = 'Add';
       }
     });
   }
@@ -515,7 +636,6 @@ bodyContent += `
           }
         } catch (error) {
           alert(error.message);
-          // Revert selection
           window.location.reload();
         }
       });
@@ -543,11 +663,9 @@ bodyContent += `
             throw new Error(data.error || 'Failed to remove member');
           }
           
-          // Remove row
           const row = this.closest('.member-row');
           row.remove();
           
-          // Update count
           const currentCount = parseInt(memberCount.textContent, 10);
           memberCount.textContent = currentCount - 1;
           

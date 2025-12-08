@@ -1,29 +1,69 @@
+# ============================================================================
+# OpenTasks - Docker Compose Configuration
+# ============================================================================
+# This file defines all services needed to run OpenTasks
+#
+# Usage:
+#   docker compose up -d          # Start all services in background
+#   docker compose down           # Stop all services
+#   docker compose logs -f        # View logs
+#   docker compose ps             # Check status
+#
+# External Access:
+#   - Local network: http://<your-local-ip>:3000
+#   - Find your IP: ifconfig | grep "inet " | grep -v 127.0.0.1
+#   - Make sure firewall allows port 3000
+# ============================================================================
+
 services:
+  # ==========================================================================
   # PostgreSQL Database
+  # ==========================================================================
+  # Primary data store for users, projects, tickets, and all application data.
+  # Data persists in a Docker volume even when containers are stopped.
+  #
+  # Connection: postgresql://opentasks:opentasks_secret@postgres:5432/opentasks
+  # External access: localhost:5432 (for database tools like pgAdmin, DBeaver)
+  # ==========================================================================
   postgres:
     image: postgres:16-alpine
     container_name: opentasks-postgres
     environment:
+      # Database credentials (change in production!)
       POSTGRES_USER: opentasks
       POSTGRES_PASSWORD: opentasks_secret
       POSTGRES_DB: opentasks
     volumes:
+      # Persist database data across container restarts
       - postgres_data:/var/lib/postgresql/data
     ports:
+      # Format: "host:container" - allows external DB connections
       - "5432:5432"
     healthcheck:
+      # Ensures database is ready before dependent services start
       test: ["CMD-SHELL", "pg_isready -U opentasks -d opentasks"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
-  # Redis for Session Store & Job Queue
+  # ==========================================================================
+  # Redis - Session Store & Job Queue
+  # ==========================================================================
+  # Used for:
+  #   1. User session storage (login state)
+  #   2. BullMQ job queue (AI task processing)
+  #   3. Real-time pub/sub (future: live updates)
+  #
+  # Data persistence enabled with appendonly mode
+  # External access: localhost:6379 (for Redis CLI or GUI tools)
+  # ==========================================================================
   redis:
     image: redis:7-alpine
     container_name: opentasks-redis
     command: redis-server --appendonly yes
     volumes:
+      # Persist Redis data (sessions, queued jobs)
       - redis_data:/data
     ports:
       - "6379:6379"
@@ -34,7 +74,23 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Main Express Server (MPA)
+  # ==========================================================================
+  # Main Express Server (MPA - Multi-Page Application)
+  # ==========================================================================
+  # The main web application serving:
+  #   - EJS-rendered pages (dashboard, settings, admin)
+  #   - React Kanban board (client-side island)
+  #   - REST API endpoints
+  #   - Authentication & session management
+  #
+  # Access URLs:
+  #   - Local:    http://localhost:3000
+  #   - Network:  http://<your-ip>:3000  (e.g., http://192.168.1.100:3000)
+  #
+  # To find your local IP:
+  #   macOS/Linux: ifconfig | grep "inet " | grep -v 127.0.0.1
+  #   Windows:     ipconfig | findstr IPv4
+  # ==========================================================================
   server:
     build:
       context: .
@@ -43,21 +99,38 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      # Database connection (internal Docker network)
       DATABASE_URL: postgresql://opentasks:opentasks_secret@postgres:5432/opentasks?schema=public
+      # Redis connection (internal Docker network)
       REDIS_URL: redis://redis:6379
+      # Security secrets (loaded from .env file)
       SESSION_SECRET: ${SESSION_SECRET}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       CSRF_SECRET: ${CSRF_SECRET}
     ports:
-      - "3000:3000"
+      # Bind to all interfaces (0.0.0.0) to allow external access
+      # Format: "host_ip:host_port:container_port"
+      # "0.0.0.0:3000:3000" = accessible from any network interface
+      - "0.0.0.0:3000:3000"
     depends_on:
+      # Wait for database and redis to be healthy before starting
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
 
+  # ==========================================================================
   # Cloud Bridge Worker (Cursor API Client)
+  # ==========================================================================
+  # Background worker that:
+  #   1. Processes AI task queue (BullMQ)
+  #   2. Communicates with Cursor Cloud Agent API
+  #   3. Updates ticket status based on AI progress
+  #   4. Tracks API usage and costs
+  #
+  # No external ports needed - communicates via Redis queue
+  # ==========================================================================
   cloud-bridge:
     build:
       context: .
@@ -65,10 +138,15 @@ services:
     container_name: opentasks-cloud-bridge
     environment:
       NODE_ENV: production
+      # Database connection for updating ticket status
       DATABASE_URL: postgresql://opentasks:opentasks_secret@postgres:5432/opentasks?schema=public
+      # Redis connection for job queue
       REDIS_URL: redis://redis:6379
+      # Encryption key for decrypting API keys
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      # Cursor API endpoint
       CURSOR_API_BASE_URL: https://api.cursor.com
+      # Cost limit per project (in cents, default $100)
       MAX_PROJECT_COST_CENTS: ${MAX_PROJECT_COST_CENTS:-10000}
     depends_on:
       postgres:
@@ -77,11 +155,24 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+# ============================================================================
+# Persistent Volumes
+# ============================================================================
+# Named volumes persist data even when containers are removed.
+# To completely reset: docker compose down -v
+# ============================================================================
 volumes:
+  # PostgreSQL data (users, projects, tickets)
   postgres_data:
+  # Redis data (sessions, job queue)
   redis_data:
 
+# ============================================================================
+# Network Configuration
+# ============================================================================
+# All services share a common network for internal communication.
+# Services can reference each other by container name (e.g., postgres, redis)
+# ============================================================================
 networks:
   default:
     name: opentasks-network
-

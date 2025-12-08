@@ -66,26 +66,42 @@ const bodyContent = `
     </div>
   </div>
   
-  <!-- Account Info -->
+  <!-- Profile Settings -->
   <div class="rounded-lg border bg-card mt-6">
     <div class="p-6 border-b">
-      <h3 class="font-semibold">Account</h3>
+      <h3 class="font-semibold flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </h3>
+      <p class="text-sm text-muted-foreground">Update your profile information</p>
     </div>
-    <div class="p-6 space-y-4">
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <span class="text-muted-foreground">Name:</span>
-          <span class="ml-2 font-medium">${user.name}</span>
+    <div class="p-6">
+      <form action="/settings/profile" method="POST" class="space-y-4">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        
+        <div class="space-y-2">
+          <label for="name" class="text-sm font-medium leading-none">Display Name</label>
+          <input type="text" id="name" name="name" value="${user.name}" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" required minlength="2" maxlength="100">
+          <p class="text-xs text-muted-foreground">This is how you'll appear to other team members</p>
         </div>
-        <div>
-          <span class="text-muted-foreground">Email:</span>
-          <span class="ml-2 font-medium">${user.email}</span>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-none text-muted-foreground">Email</label>
+          <input type="email" value="${user.email}" class="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm cursor-not-allowed" disabled>
+          <p class="text-xs text-muted-foreground">Email cannot be changed</p>
         </div>
-        <div>
-          <span class="text-muted-foreground">Role:</span>
-          <span class="ml-2 font-medium">${user.role}</span>
+        
+        <div class="flex items-center gap-4">
+          <div>
+            <span class="text-sm text-muted-foreground">Role:</span>
+            <span class="ml-2 text-sm font-medium inline-flex items-center rounded-full border px-2.5 py-0.5 ${user.role === 'SUPER_ADMIN' ? 'bg-primary/10 text-primary' : user.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-400' : 'bg-muted text-muted-foreground'}">${user.role}</span>
+          </div>
         </div>
-      </div>
+        
+        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4">
+          Save Changes
+        </button>
+      </form>
     </div>
   </div>
 </div>

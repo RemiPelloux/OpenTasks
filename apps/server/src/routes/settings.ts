@@ -140,3 +140,42 @@ settingsRoutes.get('/api-key', async (req, res) => {
   }
 });
 
+/**
+ * Update user profile (name)
+ */
+settingsRoutes.post('/profile', async (req, res) => {
+  try {
+    const userId = req.session.user!.id;
+    const { name } = req.body;
+
+    // Validate name
+    if (!name || typeof name !== 'string') {
+      res.redirect('/settings?error=Name is required');
+      return;
+    }
+
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      res.redirect('/settings?error=Name must be between 2 and 100 characters');
+      return;
+    }
+
+    // Update user
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { name: trimmedName },
+      select: { id: true, name: true, email: true, role: true },
+    });
+
+    // Update session with new name
+    if (req.session.user) {
+      req.session.user.name = updatedUser.name;
+    }
+
+    res.redirect('/settings?success=Profile updated successfully');
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.redirect('/settings?error=Failed to update profile');
+  }
+});
+

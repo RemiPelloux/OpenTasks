@@ -15,19 +15,22 @@ import { doubleCsrf } from 'csrf-csrf';
 import { config } from '../config/index.js';
 
 export async function configureMiddleware(app: Express): Promise<void> {
-  // Security headers
+  // Security headers - relaxed in development for network access
   app.use(
     helmet({
-      contentSecurityPolicy: {
+      contentSecurityPolicy: config.isProduction ? {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"], // Needed for Vite HMR in dev
+          scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
           fontSrc: ["'self'", 'https://fonts.gstatic.com'],
           imgSrc: ["'self'", 'data:', 'https:'],
-          connectSrc: ["'self'", 'ws:', 'wss:'], // WebSocket for Vite HMR
+          connectSrc: ["'self'", 'ws:', 'wss:'],
         },
-      },
+      } : false, // Disable CSP in development for easier debugging
+      crossOriginOpenerPolicy: config.isProduction ? { policy: 'same-origin' } : false,
+      crossOriginEmbedderPolicy: config.isProduction,
+      originAgentCluster: config.isProduction,
     })
   );
 

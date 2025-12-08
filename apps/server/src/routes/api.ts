@@ -4,12 +4,70 @@
  */
 
 import { Router } from 'express';
+import { prisma } from '@opentasks/database';
 import { requireAuth } from '../middleware/auth.js';
 
 export const apiRoutes = Router();
 
 // All routes require authentication
 apiRoutes.use(requireAuth);
+
+/**
+ * Search users by name or email (for autocomplete)
+ * Returns up to 10 matching users
+ */
+apiRoutes.get('/users/search', async (req, res) => {
+  try {
+    const { q, excludeProject } = req.query;
+    
+    if (!q || typeof q !== 'string' || q.length < 2) {
+      res.json({ users: [] });
+      return;
+    }
+
+    const searchTerm = q.toLowerCase().trim();
+
+    // Get existing project members to exclude
+    let excludeUserIds: string[] = [];
+    if (excludeProject && typeof excludeProject === 'string') {
+      const members = await prisma.projectMember.findMany({
+        where: { projectId: excludeProject },
+        select: { userId: true },
+      });
+      excludeUserIds = members.map(m => m.userId);
+    }
+
+    // Search users by name or email
+    const users = await prisma.user.findMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              { name: { contains: searchTerm, mode: 'insensitive' } },
+              { email: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          },
+          {
+            id: { notIn: excludeUserIds },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+      },
+      take: 10,
+      orderBy: { name: 'asc' },
+    });
+
+    res.json({ users });
+  } catch (error) {
+    console.error('User search error:', error);
+    res.status(500).json({ error: 'Failed to search users' });
+  }
+});
 
 /**
  * Fetch GitHub repositories from Cursor API
