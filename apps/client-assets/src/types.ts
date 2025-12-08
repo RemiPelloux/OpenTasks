@@ -10,7 +10,6 @@ export type ColumnId =
   | 'HANDLE'
   | 'AI_PROCESSING'
   | 'TO_REVIEW'
-  | 'IN_PROGRESS'
   | 'DONE'
   | 'CANCELLED';
 

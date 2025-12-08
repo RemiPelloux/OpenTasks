@@ -27,7 +27,6 @@ const columnVariants: Record<ColumnId, string> = {
   HANDLE: 'column-handle',
   AI_PROCESSING: 'column-ai-processing',
   TO_REVIEW: 'column-to-review',
-  IN_PROGRESS: '',
   DONE: 'column-done',
   CANCELLED: '',
 };

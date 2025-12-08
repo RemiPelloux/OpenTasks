@@ -14,10 +14,12 @@ interface TicketJobData {
   projectId: string;
   prompt: string;
   title: string;
+  aiModel?: string;
+  targetBranch?: string;
 }
 
 export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
-  const { jobId, ticketId, projectId, prompt, title } = job.data;
+  const { jobId, ticketId, projectId, prompt, title, aiModel, targetBranch } = job.data;
 
   // Update job status to DISPATCHED
   await prisma.agentJob.update({
@@ -65,18 +67,22 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
     const fullPrompt = assemblePrompt({
       title,
       description: sanitizedPrompt,
-      systemPrompt: project.systemPrompt,
+      systemPrompt: null, // System prompt was removed from project settings
     });
 
     // Launch the Cursor Cloud Agent
     console.log(`🚀 Launching Cursor agent for ticket: ${ticketId}`);
+    console.log(`   Model: ${aiModel || 'auto'}`);
+    console.log(`   Source Branch: ${targetBranch || 'main'}`);
     
     const agentResponse = await cursorClient.launchAgent({
       prompt: {
         text: fullPrompt,
       },
+      model: aiModel || undefined, // Let Cursor choose if not specified
       source: {
         repository: project.githubRepoUrl,
+        ref: targetBranch || project.defaultBranch || 'main',
       },
       target: {
         autoCreatePr: true,

@@ -101,28 +101,28 @@ export class CursorApiClient {
    * Launch a new Cursor Cloud Agent
    */
   async launchAgent(request: LaunchAgentRequest): Promise<AgentResponse> {
-    return this.request<AgentResponse>('POST', '/v1/agents', request);
+    return this.request<AgentResponse>('POST', '/v0/agents', request);
   }
 
   /**
    * Get agent status
    */
   async getAgentStatus(agentId: string): Promise<AgentStatusResponse> {
-    return this.request<AgentStatusResponse>('GET', `/v1/agents/${agentId}`);
+    return this.request<AgentStatusResponse>('GET', `/v0/agents/${agentId}`);
   }
 
   /**
    * Stop a running agent
    */
   async stopAgent(agentId: string): Promise<void> {
-    await this.request('POST', `/v1/agents/${agentId}/stop`);
+    await this.request('POST', `/v0/agents/${agentId}/stop`);
   }
 
   /**
    * Delete an agent
    */
   async deleteAgent(agentId: string): Promise<void> {
-    await this.request('DELETE', `/v1/agents/${agentId}`);
+    await this.request('DELETE', `/v0/agents/${agentId}`);
   }
 
   /**
@@ -132,7 +132,7 @@ export class CursorApiClient {
     agentId: string,
     prompt: { text: string; images?: string[] }
   ): Promise<void> {
-    await this.request('POST', `/v1/agents/${agentId}/follow-up`, { prompt });
+    await this.request('POST', `/v0/agents/${agentId}/follow-up`, { prompt });
   }
 
   /**
@@ -184,7 +184,7 @@ export class CursorApiClient {
    * List available models
    */
   async listModels(): Promise<{ models: string[] }> {
-    return this.request<{ models: string[] }>('GET', '/v1/models');
+    return this.request<{ models: string[] }>('GET', '/v0/models');
   }
 
   /**
@@ -195,7 +195,7 @@ export class CursorApiClient {
     name: string;
     createdAt: string;
   }> {
-    return this.request('GET', '/v1/api-key');
+    return this.request('GET', '/v0/api-key');
   }
 
   /**
@@ -204,7 +204,7 @@ export class CursorApiClient {
   async listRepositories(): Promise<{
     repositories: Array<{ url: string; name: string }>;
   }> {
-    return this.request('GET', '/v1/repositories');
+    return this.request('GET', '/v0/repositories');
   }
 
   private sleep(ms: number): Promise<void> {

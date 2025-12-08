@@ -55,16 +55,28 @@ OpenTasks is a Kanban-style project management tool that integrates with the [Cu
 git clone https://github.com/your-org/opentasks.git
 cd opentasks
 
-# Install dependencies
-pnpm install
-
 # Copy environment file
 cp .env.example .env
 
 # Edit .env with your settings
 nano .env
 
-# Start the database
+# One-command setup (install deps + setup database)
+pnpm setup
+
+# Start everything (services + dev servers)
+pnpm start:all
+```
+
+That's it! The app will be running at `http://localhost:3000`
+
+#### Manual Setup (Alternative)
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start the database services
 docker compose up -d postgres redis
 
 # Push database schema
@@ -73,11 +85,8 @@ pnpm db:push
 # Seed initial data (creates admin user & invite codes)
 pnpm db:seed
 
-# Build client assets
-pnpm --filter @opentasks/client-assets run build
-
-# Start the server
-pnpm --filter @opentasks/server run dev
+# Start all dev servers
+pnpm dev
 ```
 
 ### Default Credentials
@@ -190,23 +199,41 @@ OpenTasks/
 
 ## 🛠️ Development
 
-### Commands
+### Quick Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm setup` | First-time setup: install deps, generate Prisma, push DB, seed data |
+| `pnpm start:all` | Start everything (Docker services + all dev servers) |
+| `pnpm start:services` | Start only PostgreSQL + Redis in Docker |
+| `pnpm stop:services` | Stop Docker services |
+| `pnpm dev` | Start all dev servers (assumes services running) |
+| `pnpm build` | Build all packages for production |
+
+### Database Commands
 
 ```bash
-# Start development server
-pnpm --filter @opentasks/server run dev
-
-# Build client assets (watch mode)
-pnpm --filter @opentasks/client-assets run dev
-
-# Run database migrations
+# Push schema changes to database
 pnpm db:push
 
-# Generate Prisma client
+# Generate Prisma client after schema changes
 pnpm db:generate
 
-# Seed database
+# Seed database with initial data
 pnpm db:seed
+```
+
+### Individual App Commands
+
+```bash
+# Server only
+pnpm --filter @opentasks/server run dev
+
+# Client assets (watch mode)
+pnpm --filter @opentasks/client-assets run dev
+
+# Cloud bridge worker
+pnpm --filter @opentasks/cloud-bridge run dev
 ```
 
 ### Environment Variables

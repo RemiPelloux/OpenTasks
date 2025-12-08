@@ -17,7 +17,11 @@
     "docker:down": "docker compose down",
     "docker:build": "docker compose build",
     "docker:logs": "docker compose logs -f",
-    "clean": "pnpm -r run clean && rm -rf node_modules"
+    "clean": "pnpm -r run clean && rm -rf node_modules",
+    "setup": "pnpm install && pnpm db:generate && pnpm db:push && pnpm db:seed",
+    "start:services": "docker compose up -d postgres redis",
+    "start:all": "pnpm start:services && sleep 3 && pnpm dev",
+    "stop:services": "docker compose down"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

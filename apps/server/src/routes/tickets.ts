@@ -5,8 +5,9 @@
 
 import { Router } from 'express';
 import { prisma, sanitizePromptInput } from '@opentasks/database';
-import { requireAuth, requireProjectAccess } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import { z } from 'zod';
+import { addTicketJob } from '../lib/queue.js';
 
 export const ticketRoutes = Router();
 
@@ -181,7 +182,7 @@ ticketRoutes.put('/:projectId/:ticketId', async (req, res) => {
     
     // Sanitize description if provided
     if (data.description !== undefined) {
-      data.description = data.description ? sanitizePromptInput(data.description) : null;
+      data.description = data.description ? sanitizePromptInput(data.description) : undefined;
     }
 
     const ticket = await prisma.ticket.update({
@@ -332,17 +333,29 @@ async function queueForAIProcessing(ticketId: string, projectId: string): Promis
 
     if (!ticket) return;
 
+    const prompt = buildAIPrompt(ticket);
+
     // Create job in database
-    await prisma.agentJob.create({
+    const job = await prisma.agentJob.create({
       data: {
         ticketId,
-        prompt: buildAIPrompt(ticket),
+        prompt,
         status: 'QUEUED',
       },
     });
 
-    // TODO: Add to BullMQ queue for cloud-bridge worker
-    console.log(`[AI Queue] Ticket ${ticketId} queued for AI processing`);
+    // Add to BullMQ queue for cloud-bridge worker
+    await addTicketJob({
+      jobId: job.id,
+      ticketId,
+      projectId,
+      prompt,
+      title: ticket.title,
+      aiModel: ticket.aiModel || undefined,
+      targetBranch: ticket.targetBranch || ticket.project.defaultBranch || 'main',
+    });
+
+    console.log(`[AI Queue] Ticket ${ticketId} queued for AI processing (job: ${job.id})`);
   } catch (error) {
     console.error('Failed to queue AI job:', error);
   }

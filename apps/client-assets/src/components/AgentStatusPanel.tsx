@@ -8,9 +8,13 @@ import type { AgentStatusResponse, AgentMessage, AgentStatus } from '../types';
 
 interface AgentStatusPanelProps {
   agentId: string;
+  ticketId: string;
   ticketTitle: string;
+  ticketStatus?: string;
   onStatusChange?: (status: AgentStatus) => void;
   onStop?: () => void;
+  onFollowupSent?: () => void;
+  onValidate?: () => void;
 }
 
 const STATUS_COLORS: Record<AgentStatus, string> = {
@@ -37,15 +41,68 @@ const STATUS_LABELS: Record<AgentStatus, string> = {
   CANCELLED: 'Cancelled',
 };
 
-export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange, onStop }: AgentStatusPanelProps) {
+export function AgentStatusPanel({ 
+  agentId, 
+  ticketId,
+  ticketTitle, 
+  ticketStatus,
+  onStatusChange, 
+  onStop,
+  onFollowupSent,
+  onValidate
+}: AgentStatusPanelProps) {
   const [status, setStatus] = useState<AgentStatusResponse | null>(null);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isStopping, setIsStopping] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [followupText, setFollowupText] = useState('');
+  const [isSendingFollowup, setIsSendingFollowup] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Validate handler - mark ticket as Done
+  const handleValidate = useCallback(async () => {
+    if (isValidating) return;
+    
+    const confirmed = window.confirm('Mark this ticket as Done? This confirms the AI work is complete and accepted.');
+    if (!confirmed) return;
+
+    setIsValidating(true);
+    try {
+      const csrfToken = getCsrfToken();
+      const response = await fetch(`/api/tickets/${ticketId}/validate`, {
+        method: 'POST',
+        headers: { 
+          'X-CSRF-Token': csrfToken,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to validate ticket');
+      }
+
+      // Stop polling
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+
+      // Notify parent
+      if (onValidate) {
+        onValidate();
+      }
+    } catch (err) {
+      console.error('Validate error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to validate ticket');
+    } finally {
+      setIsValidating(false);
+    }
+  }, [ticketId, isValidating, onValidate]);
 
   // Emergency stop handler
   const handleStop = useCallback(async () => {
@@ -93,6 +150,62 @@ export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange, onStop 
       setIsStopping(false);
     }
   }, [agentId, isStopping, onStatusChange, onStop]);
+
+  // Follow-up handler
+  const handleSendFollowup = useCallback(async () => {
+    if (!followupText.trim() || isSendingFollowup) return;
+
+    setIsSendingFollowup(true);
+    try {
+      const csrfToken = getCsrfToken();
+      const response = await fetch(`/api/cursor/agents/${agentId}/followup`, {
+        method: 'POST',
+        headers: { 
+          'X-CSRF-Token': csrfToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          prompt: { text: followupText.trim() }
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send follow-up');
+      }
+
+      // Clear input and add message locally
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `local-${Date.now()}`,
+          type: 'user_message',
+          text: followupText.trim(),
+        }
+      ]);
+      setFollowupText('');
+
+      // Update status to running since agent will restart
+      setStatus(prev => prev ? { ...prev, status: 'RUNNING' } : null);
+      
+      // Restart polling
+      if (!pollIntervalRef.current) {
+        pollIntervalRef.current = setInterval(() => {
+          fetchStatus();
+          fetchConversation();
+        }, 3000);
+      }
+
+      if (onFollowupSent) {
+        onFollowupSent();
+      }
+    } catch (err) {
+      console.error('Follow-up error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to send follow-up');
+    } finally {
+      setIsSendingFollowup(false);
+    }
+  }, [agentId, followupText, isSendingFollowup, onFollowupSent]);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -143,11 +256,17 @@ export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange, onStop 
       }
 
       const data = await response.json();
-      setMessages(data.messages || []);
+      if (data.messages && data.messages.length > 0) {
+        setMessages(data.messages);
+      }
       
       // Scroll to bottom on new messages
       if (terminalRef.current) {
-        terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        setTimeout(() => {
+          if (terminalRef.current) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+          }
+        }, 100);
       }
     } catch (err) {
       console.error('Conversation fetch error:', err);
@@ -198,16 +317,42 @@ export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange, onStop 
   }
 
   if (error) {
+    const canStillValidate = ticketStatus === 'TO_REVIEW';
     return (
       <div className="agent-status-panel error">
         <div className="agent-status-header">
           <span className="text-red-400">❌ {error}</span>
         </div>
+        {/* Still allow validation even if agent is not found */}
+        {canStillValidate && (
+          <div className="agent-review-actions" style={{ padding: '1rem' }}>
+            <button
+              className="validate-btn"
+              onClick={handleValidate}
+              disabled={isValidating}
+            >
+              {isValidating ? (
+                <>
+                  <span className="agent-spinner-small" />
+                  Validating...
+                </>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  Validate & Complete
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
   const currentStatus = status?.status || 'QUEUED';
+  const canSendFollowup = currentStatus === 'FINISHED' || ticketStatus === 'TO_REVIEW';
 
   return (
     <div className={`agent-status-panel ${currentStatus.toLowerCase()}`}>
@@ -325,6 +470,7 @@ export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange, onStop 
                     : currentStatus === 'RUNNING'
                     ? 'Agent is processing...'
                     : 'No conversation data available.'}
+                  <span className="cursor-blink">▋</span>
                 </div>
               ) : (
                 messages.map((msg, index) => (
@@ -333,19 +479,95 @@ export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange, onStop 
                     className={`terminal-message ${msg.type}`}
                   >
                     <span className="terminal-prompt">
-                      {msg.type === 'user_message' ? '$ ' : '→ '}
+                      {msg.type === 'user_message' ? (
+                        <span className="prompt-user">You :&gt;</span>
+                      ) : (
+                        <span className="prompt-agent">Cloud Agent :&gt;</span>
+                      )}
                     </span>
-                    <span className="terminal-text">{msg.text}</span>
+                    <pre className="terminal-text">{msg.text}</pre>
                   </div>
                 ))
               )}
-              {currentStatus === 'RUNNING' && (
+              {currentStatus === 'RUNNING' && messages.length > 0 && (
                 <div className="terminal-cursor">
+                  <span className="prompt-agent">Cloud Agent :&gt;</span>
                   <span className="cursor-blink">▋</span>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Review Actions (visible when finished or in review) */}
+          {canSendFollowup && (
+            <div className="agent-review-actions">
+              {/* Validate Button */}
+              <button
+                className="validate-btn"
+                onClick={handleValidate}
+                disabled={isValidating}
+              >
+                {isValidating ? (
+                  <>
+                    <span className="agent-spinner-small" />
+                    Validating...
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    Validate & Complete
+                  </>
+                )}
+              </button>
+
+              {/* Follow-up Section */}
+              <div className="agent-followup">
+                <div className="followup-label">
+                  <span>📝 Request Changes</span>
+                  <span className="followup-hint">Send feedback to continue AI work</span>
+                </div>
+                <div className="followup-input-container">
+                  <textarea
+                    className="followup-input"
+                    value={followupText}
+                    onChange={(e) => setFollowupText(e.target.value)}
+                    placeholder="Please also add unit tests for the translation changes..."
+                    rows={3}
+                    disabled={isSendingFollowup}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && followupText.trim()) {
+                        e.preventDefault();
+                        handleSendFollowup();
+                      }
+                    }}
+                  />
+                  <button
+                    className="followup-btn"
+                    onClick={handleSendFollowup}
+                    disabled={!followupText.trim() || isSendingFollowup}
+                  >
+                    {isSendingFollowup ? (
+                      <>
+                        <span className="agent-spinner-small" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                          <path d="M22 2L11 13" />
+                          <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                        </svg>
+                        Send & Queue
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="followup-hint-enter">Press Enter to send, Shift+Enter for new line</p>
+              </div>
+            </div>
+          )}
 
           {/* Metadata */}
           <div className="agent-meta">
@@ -353,12 +575,12 @@ export function AgentStatusPanel({ agentId, ticketTitle, onStatusChange, onStop 
               <div className="agent-meta-item">
                 <span className="meta-label">Repository:</span>
                 <a 
-                  href={status.source.repository}
+                  href={`https://${status.source.repository}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="meta-link"
                 >
-                  {status.source.repository.replace('https://github.com/', '')}
+                  {status.source.repository.replace('github.com/', '')}
                 </a>
               </div>
             )}
@@ -385,4 +607,3 @@ function getCsrfToken(): string {
   const meta = document.querySelector('meta[name="csrf-token"]');
   return meta?.getAttribute('content') || '';
 }
-

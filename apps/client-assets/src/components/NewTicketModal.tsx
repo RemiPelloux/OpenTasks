@@ -124,19 +124,38 @@ export function NewTicketModal({
 
   const validateDescription = (desc: string): boolean => {
     // Check if description has meaningful content beyond the template
+    // More lenient validation - just check it's not the exact template
+    if (!desc || desc.trim().length < 30) return false;
+    
+    // Check if description is significantly different from template
+    const templateSignatures = [
+      'Describe the task clearly',
+      'What is the expected outcome?',
+      'Criterion 1',
+      'Criterion 2', 
+      'Criterion 3',
+      'Any specific implementation details',
+      'files to modify, or constraints?',
+      'Links, screenshots, or references'
+    ];
+    
+    // Count how many template signatures are still present
+    let templateMatches = 0;
+    for (const sig of templateSignatures) {
+      if (desc.includes(sig)) templateMatches++;
+    }
+    
+    // If more than 4 template signatures remain, user hasn't filled it properly
+    if (templateMatches >= 5) return false;
+    
+    // Also do a stripped content check for meaningful text
     const stripped = desc
-      .replace(/##\s*What needs to be done\s*/gi, '')
-      .replace(/##\s*Acceptance Criteria\s*/gi, '')
-      .replace(/##\s*Technical Details\s*/gi, '')
-      .replace(/##\s*Additional Context\s*/gi, '')
-      .replace(/Describe the task clearly.*\?/gi, '')
-      .replace(/Any specific implementation.*\?/gi, '')
-      .replace(/Links, screenshots.*help\./gi, '')
-      .replace(/-\s*\[\s*\]\s*Criterion \d+/gi, '')
+      .replace(/##\s*[A-Za-z ]+\s*/g, '') // Remove markdown headers
+      .replace(/-\s*\[\s*\]\s*/g, '') // Remove checkbox markers
       .replace(/\s+/g, ' ')
       .trim();
     
-    return stripped.length >= 20;
+    return stripped.length >= 15;
   };
 
   const handleSubmit = useCallback(
@@ -195,7 +214,7 @@ export function NewTicketModal({
         setIsSubmitting(false);
       }
     },
-    [projectId, title, description, priority, targetBranch, assigneeId, labels, onSubmit]
+    [projectId, title, description, priority, targetBranch, assigneeId, labels, aiModel, onSubmit]
   );
 
   const handleAddLabel = useCallback(() => {
@@ -282,11 +301,14 @@ export function NewTicketModal({
             </label>
             <input
               ref={titleRef}
+              id="ticket-title"
+              name="title"
               type="text"
               className="ticket-title-input"
               placeholder="Brief summary of the task"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              autoComplete="off"
               required
             />
           </div>
@@ -300,10 +322,13 @@ export function NewTicketModal({
               </span>
             </label>
             <textarea
+              id="ticket-description"
+              name="description"
               className={`ticket-description-input ${!descriptionHasContent ? 'ticket-description-warning' : ''}`}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={12}
+              autoComplete="off"
               required
             />
             {!descriptionHasContent && (
@@ -523,7 +548,7 @@ export function NewTicketModal({
             <button
               type="submit"
               className="ticket-btn-primary"
-              disabled={isSubmitting || !title.trim() || !descriptionHasContent}
+              disabled={isSubmitting || !title.trim()}
             >
               {isSubmitting ? (
                 <>

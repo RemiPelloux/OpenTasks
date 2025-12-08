@@ -13,6 +13,53 @@ export const apiRoutes = Router();
 apiRoutes.use(requireAuth);
 
 // ============================================
+// Ticket Actions
+// ============================================
+
+/**
+ * Validate a ticket - move to DONE
+ * POST /api/tickets/:ticketId/validate
+ */
+apiRoutes.post('/tickets/:ticketId/validate', async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    // Find the ticket
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+
+    // Update ticket to DONE
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        status: 'DONE',
+        agentStatus: 'FINISHED',
+      },
+    });
+
+    // Update any associated agent job to COMPLETED
+    await prisma.agentJob.updateMany({
+      where: { ticketId },
+      data: { status: 'COMPLETED', completedAt: new Date() },
+    });
+
+    res.json({ 
+      message: 'Ticket validated successfully',
+      ticket: updatedTicket,
+    });
+  } catch (error) {
+    console.error('Validate ticket error:', error);
+    res.status(500).json({ error: 'Failed to validate ticket' });
+  }
+});
+
+// ============================================
 // Type Definitions for Cursor API Responses
 // ============================================
 
@@ -272,6 +319,89 @@ apiRoutes.post('/cursor/agents/:agentId/stop', async (req, res) => {
   } catch (error) {
     console.error('Stop agent error:', error);
     res.status(500).json({ error: 'Failed to stop agent' });
+  }
+});
+
+/**
+ * Send follow-up to Cursor agent
+ * POST /api/cursor/agents/:agentId/followup
+ */
+apiRoutes.post('/cursor/agents/:agentId/followup', async (req, res) => {
+  try {
+    const { agentId } = req.params;
+    const { prompt } = req.body;
+    const userId = req.session.user!.id;
+
+    if (!prompt?.text) {
+      res.status(400).json({ error: 'Follow-up text is required' });
+      return;
+    }
+
+    // Find the ticket with this agent ID to get the project's API key
+    const ticket = await prisma.ticket.findFirst({
+      where: { agentId },
+      include: {
+        project: {
+          select: { cursorApiKeyEncrypted: true },
+        },
+      },
+    });
+
+    // Try project API key first, then user's API key
+    let apiKey: string | null = null;
+    
+    if (ticket?.project.cursorApiKeyEncrypted) {
+      apiKey = decrypt(ticket.project.cursorApiKeyEncrypted);
+    } else {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { cursorApiKeyEncrypted: true },
+      });
+      if (user?.cursorApiKeyEncrypted) {
+        apiKey = decrypt(user.cursorApiKeyEncrypted);
+      }
+    }
+
+    if (!apiKey) {
+      res.status(400).json({ error: 'No API key available' });
+      return;
+    }
+
+    const response = await fetch(`https://api.cursor.com/v0/agents/${agentId}/followup`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(apiKey + ':').toString('base64')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        res.status(404).json({ error: 'Agent not found' });
+        return;
+      }
+      const errorText = await response.text();
+      throw new Error(`Cursor API error: ${response.status} - ${errorText}`);
+    }
+
+    const data: any = await response.json();
+
+    // Update ticket status back to AI_PROCESSING since agent will restart
+    if (ticket) {
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: {
+          status: 'AI_PROCESSING',
+          agentStatus: 'RUNNING',
+        },
+      });
+    }
+
+    res.json({ id: data.id, message: 'Follow-up sent successfully' });
+  } catch (error) {
+    console.error('Follow-up error:', error);
+    res.status(500).json({ error: 'Failed to send follow-up' });
   }
 });
 

@@ -29,7 +29,6 @@ const COLUMNS: { id: ColumnId; title: string; icon: string }[] = [
   { id: 'HANDLE', title: 'Handle', icon: '🤖' },
   { id: 'AI_PROCESSING', title: 'AI Processing', icon: '⚡' },
   { id: 'TO_REVIEW', title: 'To Review', icon: '👀' },
-  { id: 'IN_PROGRESS', title: 'In Progress', icon: '🔧' },
   { id: 'DONE', title: 'Done', icon: '✅' },
 ];
 

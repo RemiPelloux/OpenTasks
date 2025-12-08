@@ -18,10 +18,10 @@ interface CostCheckResult {
  * Check if a project can proceed with API usage
  */
 export async function checkCostGuardrails(projectId: string): Promise<CostCheckResult> {
-  // Get project budget
+  // Check project exists
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { monthlyBudgetCents: true },
+    select: { id: true },
   });
 
   if (!project) {
@@ -34,10 +34,8 @@ export async function checkCostGuardrails(projectId: string): Promise<CostCheckR
     };
   }
 
-  const budgetCents = Math.min(
-    project.monthlyBudgetCents,
-    config.costGuardrails.maxProjectCostCents
-  );
+  // Use global config for budget limit
+  const budgetCents = config.costGuardrails.maxProjectCostCents;
 
   // Calculate current month usage
   const startOfMonth = new Date();
@@ -173,4 +171,3 @@ export async function getUsageSummary(projectId: string): Promise<{
     operationBreakdown,
   };
 }
-

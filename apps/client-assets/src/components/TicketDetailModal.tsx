@@ -20,7 +20,6 @@ const statusLabels: Record<ColumnId, string> = {
   HANDLE: 'Handle (AI Queue)',
   AI_PROCESSING: 'AI Processing',
   TO_REVIEW: 'To Review',
-  IN_PROGRESS: 'In Progress',
   DONE: 'Done',
   CANCELLED: 'Cancelled',
 };
@@ -187,8 +186,19 @@ export function TicketDetailModal({
             <div className="mb-4">
               <AgentStatusPanel 
                 agentId={ticket.agentId}
+                ticketId={ticket.id}
                 ticketTitle={ticket.title}
+                ticketStatus={ticket.status}
                 onStatusChange={handleAgentStatusChange}
+                onFollowupSent={() => {
+                  // Refresh ticket after follow-up sent
+                  onUpdate({ ...ticket, status: 'AI_PROCESSING' });
+                }}
+                onValidate={() => {
+                  // Move ticket to DONE when validated
+                  onUpdate({ ...ticket, status: 'DONE' });
+                  onClose();
+                }}
               />
             </div>
           )}
@@ -288,7 +298,6 @@ export function TicketDetailModal({
                   <option value="TODO">To Do</option>
                   <option value="HANDLE">Handle (AI)</option>
                   <option value="TO_REVIEW">To Review</option>
-                  <option value="IN_PROGRESS">In Progress</option>
                   <option value="DONE">Done</option>
                 </select>
               </div>
