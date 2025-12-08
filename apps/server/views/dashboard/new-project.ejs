@@ -13,8 +13,9 @@ const bodyContent = `
   <div class="rounded-lg border bg-card shadow-sm">
     ${typeof error !== 'undefined' && error ? '<div class="m-6 mb-0 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">' + error + '</div>' : ''}
     
-    <form action="/dashboard/new-project" method="POST">
+    <form action="/dashboard/new-project" method="POST" id="new-project-form">
       <input type="hidden" name="_csrf" value="${csrfToken}">
+      <input type="hidden" id="githubRepoUrl" name="githubRepoUrl" value="">
       
       <div class="p-6 space-y-4">
         <div>
@@ -38,45 +39,45 @@ const bodyContent = `
       <div class="p-6 space-y-4">
         <div>
           <h3 class="font-semibold flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-            GitHub Repository
-          </h3>
-          <p class="text-sm text-muted-foreground">Connect a repository for the AI agent to work on</p>
-        </div>
-        
-        <div class="space-y-2">
-          <label for="githubRepoUrl" class="text-sm font-medium leading-none">Repository URL</label>
-          <input type="url" id="githubRepoUrl" name="githubRepoUrl" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="https://github.com/org/repo">
-          <p class="text-xs text-muted-foreground">Cursor Cloud Agent handles GitHub authentication automatically</p>
-        </div>
-      </div>
-      
-      <div class="h-px bg-border"></div>
-      
-      <div class="p-6 space-y-4">
-        <div>
-          <h3 class="font-semibold flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
-            AI Configuration
+            Cursor Cloud Agent
           </h3>
-          <p class="text-sm text-muted-foreground">Configure the Cursor Cloud Agent</p>
+          <p class="text-sm text-muted-foreground">Connect your Cursor account to enable AI code generation</p>
         </div>
         
         <div class="space-y-2">
-          <label for="cursorApiKey" class="text-sm font-medium leading-none">Cursor API Key</label>
-          <input type="password" id="cursorApiKey" name="cursorApiKey" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="key_xxxxx...">
-          <p class="text-xs text-muted-foreground">Get your key from cursor.com/settings</p>
+          <label for="cursorApiKey" class="text-sm font-medium leading-none">Cursor API Key <span class="text-destructive">*</span></label>
+          <div class="flex gap-2">
+            <input type="password" id="cursorApiKey" name="cursorApiKey" class="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="key_xxxxx..." required>
+            <button type="button" id="load-repos-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <svg id="load-repos-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 mr-2"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+              <span id="load-repos-text">Load Repos</span>
+            </button>
+          </div>
+          <p class="text-xs text-muted-foreground">Get your key from <a href="https://cursor.com/settings" target="_blank" class="underline hover:text-primary">cursor.com/settings</a></p>
         </div>
         
-        <div class="space-y-2">
-          <label for="systemPrompt" class="text-sm font-medium leading-none">System Prompt</label>
-          <textarea id="systemPrompt" name="systemPrompt" rows="4" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y" placeholder="Instructions for the AI agent (coding standards, tech stack, etc.)"></textarea>
+        <!-- Loading State -->
+        <div id="repo-loading" class="hidden p-4 rounded-md border border-amber-500/20 bg-amber-500/10">
+          <div class="flex items-center gap-2 text-amber-400">
+            <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"/><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <span class="text-sm font-medium">Loading repositories...</span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-1">This may take a moment for accounts with many repositories.</p>
         </div>
         
-        <div class="space-y-2">
-          <label for="monthlyBudgetCents" class="text-sm font-medium leading-none">Monthly Budget (cents)</label>
-          <input type="number" id="monthlyBudgetCents" name="monthlyBudgetCents" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="10000" value="10000" min="0" max="1000000">
-          <p class="text-xs text-muted-foreground">10000 = $100 maximum monthly API cost</p>
+        <!-- Error State -->
+        <div id="repo-error" class="hidden p-4 rounded-md border border-destructive/50 bg-destructive/10">
+          <p class="text-sm text-destructive" id="repo-error-message">Failed to load repositories</p>
+        </div>
+        
+        <!-- Repository Selector (shown after loading repos) -->
+        <div id="repo-selector-container" class="hidden space-y-2">
+          <label for="repo-selector" class="text-sm font-medium leading-none">Select Repository <span class="text-destructive">*</span></label>
+          <select id="repo-selector" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" required>
+            <option value="">Choose a repository...</option>
+          </select>
+          <p class="text-xs text-green-400" id="repo-count"></p>
         </div>
       </div>
       
@@ -84,13 +85,136 @@ const bodyContent = `
         <a href="/dashboard" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
           Cancel
         </a>
-        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+        <button type="submit" id="submit-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
           Create Project
         </button>
       </div>
     </form>
   </div>
 </div>
+
+<script>
+(function() {
+  const apiKeyInput = document.getElementById('cursorApiKey');
+  const loadReposBtn = document.getElementById('load-repos-btn');
+  const loadReposIcon = document.getElementById('load-repos-icon');
+  const loadReposText = document.getElementById('load-repos-text');
+  const repoSelector = document.getElementById('repo-selector');
+  const repoSelectorContainer = document.getElementById('repo-selector-container');
+  const repoLoading = document.getElementById('repo-loading');
+  const repoError = document.getElementById('repo-error');
+  const repoErrorMessage = document.getElementById('repo-error-message');
+  const repoCount = document.getElementById('repo-count');
+  const githubUrlInput = document.getElementById('githubRepoUrl');
+  const submitBtn = document.getElementById('submit-btn');
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  
+  // Try to load saved API key
+  fetch('/settings/api-key', {
+    headers: { 'X-CSRF-Token': csrfToken }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.hasKey && data.key) {
+      apiKeyInput.value = data.key;
+      apiKeyInput.type = 'password';
+      loadReposBtn.disabled = false;
+      // Auto-trigger load repos
+      loadReposBtn.click();
+    }
+  })
+  .catch(() => {});
+  
+  // Enable/disable load repos button based on API key input
+  apiKeyInput.addEventListener('input', function() {
+    loadReposBtn.disabled = !this.value.trim();
+  });
+  
+  // Handle repository selection
+  repoSelector.addEventListener('change', function() {
+    githubUrlInput.value = this.value;
+    submitBtn.disabled = !this.value;
+  });
+  
+  // Load repositories from Cursor API
+  loadReposBtn.addEventListener('click', async function() {
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) return;
+    
+    // Show loading state
+    loadReposBtn.disabled = true;
+    loadReposText.textContent = 'Loading...';
+    loadReposIcon.classList.add('animate-spin');
+    repoLoading.classList.remove('hidden');
+    repoError.classList.add('hidden');
+    repoSelectorContainer.classList.add('hidden');
+    
+    try {
+      const response = await fetch('/api/cursor/repositories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ apiKey }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load repositories');
+      }
+      
+      // Populate selector
+      repoSelector.innerHTML = '<option value="">Choose a repository...</option>';
+      
+      if (data.repositories && data.repositories.length > 0) {
+        // Group by owner
+        const grouped = {};
+        data.repositories.forEach(repo => {
+          if (!grouped[repo.owner]) grouped[repo.owner] = [];
+          grouped[repo.owner].push(repo);
+        });
+        
+        // Add options grouped by owner
+        Object.keys(grouped).sort().forEach(owner => {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = owner;
+          
+          grouped[owner].sort((a, b) => a.name.localeCompare(b.name)).forEach(repo => {
+            const option = document.createElement('option');
+            option.value = repo.repository;
+            option.textContent = repo.name;
+            optgroup.appendChild(option);
+          });
+          
+          repoSelector.appendChild(optgroup);
+        });
+        
+        repoSelectorContainer.classList.remove('hidden');
+        repoCount.textContent = data.repositories.length + ' repositories loaded';
+        if (typeof window.showToast === 'function') {
+          window.showToast('Loaded ' + data.repositories.length + ' repositories', 'success');
+        }
+      } else {
+        throw new Error('No repositories found');
+      }
+      
+    } catch (error) {
+      repoErrorMessage.textContent = error.message;
+      repoError.classList.remove('hidden');
+      if (typeof window.showToast === 'function') {
+        window.showToast(error.message, 'error');
+      }
+    } finally {
+      repoLoading.classList.add('hidden');
+      loadReposBtn.disabled = false;
+      loadReposText.textContent = 'Load Repos';
+      loadReposIcon.classList.remove('animate-spin');
+    }
+  });
+})();
+</script>
 `;
 %>
 <%- include('../layout', { body: bodyContent, title, csrfToken, isAuthenticated: true, user, currentPath }) %>

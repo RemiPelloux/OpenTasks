@@ -95,14 +95,7 @@ dashboardRoutes.post('/new-project', async (req, res) => {
       return;
     }
 
-    const {
-      name,
-      description,
-      githubRepoUrl,
-      cursorApiKey,
-      systemPrompt,
-      monthlyBudgetCents,
-    } = parseResult.data;
+    const { name, description, githubRepoUrl, cursorApiKey } = parseResult.data;
 
     // Generate slug
     let slug = slugify(name, { lower: true, strict: true });
@@ -116,12 +109,8 @@ dashboardRoutes.post('/new-project', async (req, res) => {
       suffix++;
     }
 
-    // Encrypt API key if provided
-    let cursorApiKeyEncrypted: string | null = null;
-
-    if (cursorApiKey) {
-      cursorApiKeyEncrypted = encrypt(cursorApiKey);
-    }
+    // Encrypt API key
+    const cursorApiKeyEncrypted = encrypt(cursorApiKey);
 
     // Create project with owner membership
     const project = await prisma.project.create({
@@ -129,10 +118,8 @@ dashboardRoutes.post('/new-project', async (req, res) => {
         name: name.trim(),
         description: description?.trim() || null,
         slug,
-        githubRepoUrl: githubRepoUrl?.trim() || null,
+        githubRepoUrl,
         cursorApiKeyEncrypted,
-        systemPrompt: systemPrompt?.trim() || null,
-        monthlyBudgetCents: monthlyBudgetCents || 10000,
         members: {
           create: {
             userId,

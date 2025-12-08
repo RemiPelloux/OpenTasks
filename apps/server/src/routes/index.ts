@@ -10,6 +10,8 @@ import { projectRoutes } from './projects.js';
 import { ticketRoutes } from './tickets.js';
 import { webhookRoutes } from './webhooks.js';
 import { adminRoutes } from './admin.js';
+import { apiRoutes } from './api.js';
+import { settingsRoutes } from './settings.js';
 
 export function configureRoutes(app: Express): void {
   // Landing page
@@ -34,6 +36,12 @@ export function configureRoutes(app: Express): void {
 
   // Admin routes (protected + admin only)
   app.use('/admin', adminRoutes);
+
+  // User settings routes (protected)
+  app.use('/settings', settingsRoutes);
+
+  // Internal API routes (protected)
+  app.use('/api', apiRoutes);
 
   // Ticket API routes (protected)
   app.use('/api/tickets', ticketRoutes);

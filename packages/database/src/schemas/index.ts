@@ -66,29 +66,10 @@ export const NewProjectSchema = z.object({
     .transform((val) => val?.trim() || null),
   githubRepoUrl: z
     .string()
-    .url('Invalid URL format')
-    .optional()
-    .nullable()
-    .or(z.literal(''))
-    .transform((val) => val || null),
+    .url('Invalid URL format'),
   cursorApiKey: z
     .string()
-    .optional()
-    .nullable()
-    .transform((val) => val?.trim() || null),
-  systemPrompt: z
-    .string()
-    .max(10000, 'System prompt must be at most 10000 characters')
-    .optional()
-    .nullable()
-    .transform((val) => val?.trim() || null),
-  monthlyBudgetCents: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(1000000)
-    .optional()
-    .default(10000),
+    .min(1, 'Cursor API key is required'),
 });
 
 /**

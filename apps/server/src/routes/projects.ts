@@ -184,7 +184,7 @@ projectRoutes.post('/:id/settings', async (req, res) => {
       return;
     }
 
-    const { name, description, githubRepoUrl, systemPrompt, monthlyBudgetCents } = req.body;
+    const { name, description, githubRepoUrl } = req.body;
 
     // Handle API key update (only if provided)
     let cursorApiKeyEncrypted: string | undefined;
@@ -200,8 +200,6 @@ projectRoutes.post('/:id/settings', async (req, res) => {
         name: name?.trim() || undefined,
         description: description?.trim() || null,
         githubRepoUrl: githubRepoUrl?.trim() || null,
-        systemPrompt: systemPrompt?.trim() || null,
-        monthlyBudgetCents: monthlyBudgetCents ? parseInt(monthlyBudgetCents, 10) : undefined,
         ...(cursorApiKeyEncrypted && { cursorApiKeyEncrypted }),
       },
     });
