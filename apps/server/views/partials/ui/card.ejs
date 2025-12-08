@@ -1,0 +1,19 @@
+<%#
+  Card Component Partial
+  
+  Usage:
+  <%- include('partials/ui/card', { 
+    class: '',
+    hover: false, // adds hover effect
+    content: '<div>Card content</div>'
+  }) %>
+%>
+<%
+const baseClasses = 'rounded-lg border bg-card text-card-foreground shadow-sm';
+const hoverClasses = typeof hover !== 'undefined' && hover ? 'card-hover cursor-pointer' : '';
+const extraClass = typeof className !== 'undefined' ? className : '';
+%>
+<div class="<%= baseClasses %> <%= hoverClasses %> <%= extraClass %>">
+  <%- content %>
+</div>
+

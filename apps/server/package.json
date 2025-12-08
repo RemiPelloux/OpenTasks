@@ -1,0 +1,48 @@
+{
+  "name": "@opentasks/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"tsx watch src/index.ts\" \"pnpm css:watch\"",
+    "build": "pnpm css:build && tsc",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "css:build": "tailwindcss -i ./public/styles/globals.css -o ./public/styles/output.css --minify",
+    "css:watch": "tailwindcss -i ./public/styles/globals.css -o ./public/styles/output.css --watch"
+  },
+  "dependencies": {
+    "@opentasks/database": "workspace:*",
+    "bullmq": "^5.1.0",
+    "compression": "^1.7.4",
+    "connect-redis": "^7.1.0",
+    "cookie-parser": "^1.4.6",
+    "csrf-csrf": "^3.0.0",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.3.2",
+    "morgan": "^1.10.0",
+    "slugify": "^1.6.6",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.7.5",
+    "@types/cookie-parser": "^1.4.6",
+    "@types/ejs": "^3.1.5",
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.17.10",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.10.0",
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.0"
+  }
+}
+

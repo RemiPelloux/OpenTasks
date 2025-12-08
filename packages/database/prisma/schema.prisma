@@ -1,0 +1,263 @@
+// OpenTasks Database Schema
+// PostgreSQL with Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// User & Authentication Models
+// ============================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         UserRole @default(MEMBER)
+  avatarUrl    String?  @map("avatar_url")
+  isActive     Boolean  @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  inviteCodeUsed   InviteCode? @relation("UsedBy", fields: [inviteCodeId], references: [id])
+  inviteCodeId     String?     @unique @map("invite_code_id")
+  inviteCodesCreated InviteCode[] @relation("CreatedBy")
+  projects         ProjectMember[]
+  tickets          Ticket[]    @relation("AssignedTickets")
+  createdTickets   Ticket[]    @relation("CreatedTickets")
+  sessions         Session[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN  // Can manage all users, invite codes, and system settings
+  ADMIN        // Can manage invite codes and view all projects
+  MEMBER       // Standard user
+}
+
+model InviteCode {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  description String?      // Optional description for admin reference
+  type        InviteType   @default(SINGLE_USE)
+  maxUses     Int          @default(1) @map("max_uses")
+  currentUses Int          @default(0) @map("current_uses")
+  isActive    Boolean      @default(true) @map("is_active")
+  expiresAt   DateTime?    @map("expires_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  usedBy    User?   @relation("UsedBy")
+  createdBy User?   @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById String? @map("created_by_id")
+
+  @@map("invite_codes")
+}
+
+enum InviteType {
+  SINGLE_USE   // Can only be used once
+  MULTI_USE    // Can be used multiple times (up to maxUses)
+  UNLIMITED    // No usage limit
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  sessionId String   @unique @map("session_id")
+  userId    String   @map("user_id")
+  data      String   @db.Text
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ============================================
+// Project Models
+// ============================================
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  slug        String   @unique
+  
+  // Encrypted credentials for Cursor Cloud API
+  cursorApiKeyEncrypted String?  @map("cursor_api_key_encrypted") @db.Text
+  githubRepoUrl         String?  @map("github_repo_url")
+  
+  // System prompt for AI agent context
+  systemPrompt String?  @map("system_prompt") @db.Text
+  
+  // Cost tracking
+  monthlyBudgetCents Int @default(10000) @map("monthly_budget_cents")
+  
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  members      ProjectMember[]
+  tickets      Ticket[]
+  usageRecords UsageRecord[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  role      ProjectRole @default(MEMBER)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String  @map("project_id")
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String  @map("user_id")
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+enum ProjectRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ============================================
+// Ticket / Kanban Models
+// ============================================
+
+model Ticket {
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  status      TicketStatus @default(BACKLOG)
+  priority    Priority     @default(MEDIUM)
+  position    Int          @default(0)
+  
+  // AI-related fields
+  aiSummary   String?      @map("ai_summary") @db.Text
+  prLink      String?      @map("pr_link")
+  agentId     String?      @map("agent_id")
+  
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String       @map("project_id")
+  assignee    User?        @relation("AssignedTickets", fields: [assigneeId], references: [id])
+  assigneeId  String?      @map("assignee_id")
+  createdBy   User         @relation("CreatedTickets", fields: [createdById], references: [id])
+  createdById String       @map("created_by_id")
+  jobs        AgentJob[]
+
+  @@index([projectId, status])
+  @@index([projectId, position])
+  @@map("tickets")
+}
+
+enum TicketStatus {
+  BACKLOG
+  TODO
+  HANDLE      // Triggers AI agent
+  AI_PROCESSING
+  TO_REVIEW
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ============================================
+// AI Agent Job Models
+// ============================================
+
+model AgentJob {
+  id            String        @id @default(cuid())
+  cursorAgentId String?       @map("cursor_agent_id")
+  status        AgentJobStatus @default(QUEUED)
+  prompt        String        @db.Text
+  
+  // Results
+  result        String?       @db.Text
+  prUrl         String?       @map("pr_url")
+  errorMessage  String?       @map("error_message") @db.Text
+  
+  // Timing
+  startedAt     DateTime?     @map("started_at")
+  completedAt   DateTime?     @map("completed_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  ticket        Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId      String        @map("ticket_id")
+
+  @@index([cursorAgentId])
+  @@index([status])
+  @@map("agent_jobs")
+}
+
+enum AgentJobStatus {
+  QUEUED
+  DISPATCHED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// Usage Tracking Models
+// ============================================
+
+model UsageRecord {
+  id          String   @id @default(cuid())
+  costCents   Int      @map("cost_cents")
+  tokensUsed  Int      @map("tokens_used")
+  model       String
+  operation   String
+  metadata    String?  @db.Text // JSON string
+  recordedAt  DateTime @default(now()) @map("recorded_at")
+
+  // Relations
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String   @map("project_id")
+
+  @@index([projectId, recordedAt])
+  @@map("usage_records")
+}
+
+// ============================================
+// System Settings
+// ============================================
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}

@@ -1,0 +1,21 @@
+<%#
+  Spinner Component Partial (CSS-only loading indicator)
+  
+  Usage:
+  <%- include('partials/ui/spinner', { 
+    size: 'default', // sm, default, lg
+    class: ''
+  }) %>
+%>
+<%
+const sizes = {
+  sm: 'h-4 w-4 border-2',
+  default: 'h-6 w-6 border-2',
+  lg: 'h-8 w-8 border-3'
+};
+
+const sizeClass = sizes[size || 'default'];
+const extraClass = typeof className !== 'undefined' ? className : '';
+%>
+<div class="<%= sizeClass %> <%= extraClass %> animate-spin rounded-full border-muted-foreground/30 border-t-foreground"></div>
+

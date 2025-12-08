@@ -1,0 +1,100 @@
+<%
+const successMsg = typeof req !== 'undefined' && req.query && req.query.success ? req.query.success : '';
+const errorMsg = typeof req !== 'undefined' && req.query && req.query.error ? req.query.error : '';
+
+function renderUserRow(u) {
+  const roleColors = {
+    SUPER_ADMIN: 'bg-destructive/10 text-destructive',
+    ADMIN: 'bg-blue-500/10 text-blue-400',
+    MEMBER: 'bg-muted text-muted-foreground'
+  };
+  const roleColor = roleColors[u.role] || roleColors.MEMBER;
+  const statusColor = u.isActive ? 'bg-green-500/10 text-green-400' : 'bg-destructive/10 text-destructive';
+  const isCurrentUser = u.id === user.id;
+  
+  return `
+    <tr class="hover:bg-muted/50">
+      <td class="p-4">
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted font-medium">
+            ${u.name.substring(0, 2).toUpperCase()}
+          </div>
+          <div>
+            <p class="font-medium">${u.name}</p>
+            <p class="text-sm text-muted-foreground">${u.email}</p>
+          </div>
+        </div>
+      </td>
+      <td class="p-4">
+        <form action="/admin/users/${u.id}/role" method="POST" class="inline">
+          <input type="hidden" name="_csrf" value="${csrfToken}">
+          <select name="role" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm" onchange="this.form.submit()" ${isCurrentUser ? 'disabled' : ''}>
+            <option value="MEMBER" ${u.role === 'MEMBER' ? 'selected' : ''}>Member</option>
+            <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Admin</option>
+            <option value="SUPER_ADMIN" ${u.role === 'SUPER_ADMIN' ? 'selected' : ''}>Super Admin</option>
+          </select>
+        </form>
+      </td>
+      <td class="p-4">
+        <code class="text-xs bg-muted px-2 py-1 rounded">${u.inviteCodeUsed?.code || 'N/A'}</code>
+      </td>
+      <td class="p-4 text-sm text-muted-foreground">
+        ${u._count.projects} projects • ${u._count.createdTickets} tickets
+      </td>
+      <td class="p-4">
+        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColor}">
+          ${u.isActive ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td class="p-4">
+        ${!isCurrentUser ? `
+          <form action="/admin/users/${u.id}/toggle-active" method="POST" class="inline">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
+            <button type="submit" class="text-sm hover:underline ${u.isActive ? 'text-destructive' : 'text-green-400'}">
+              ${u.isActive ? 'Deactivate' : 'Activate'}
+            </button>
+          </form>
+        ` : '<span class="text-sm text-muted-foreground">—</span>'}
+      </td>
+    </tr>
+  `;
+}
+
+let bodyContent = `
+<div class="container py-6">
+  <div class="mb-8">
+    <a href="/admin" class="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 mr-1"><path d="m15 18-6-6 6-6"/></svg>
+      Back to Admin
+    </a>
+    <h1 class="text-3xl font-bold tracking-tight">Users</h1>
+    <p class="text-muted-foreground">Manage user accounts and roles</p>
+  </div>
+  
+  <div class="rounded-lg border bg-card overflow-hidden">
+    <table class="w-full">
+      <thead>
+        <tr class="border-b bg-muted/50">
+          <th class="text-left p-4 font-medium">User</th>
+          <th class="text-left p-4 font-medium">Role</th>
+          <th class="text-left p-4 font-medium">Invite Code</th>
+          <th class="text-left p-4 font-medium">Stats</th>
+          <th class="text-left p-4 font-medium">Status</th>
+          <th class="text-left p-4 font-medium">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+`;
+
+for (const u of users) {
+  bodyContent += renderUserRow(u);
+}
+
+bodyContent += `
+      </tbody>
+    </table>
+  </div>
+</div>
+`;
+%>
+<%- include('../layout', { body: bodyContent, title, csrfToken, isAuthenticated: true, user, currentPath }) %>

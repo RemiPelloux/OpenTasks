@@ -1,0 +1,22 @@
+<%#
+  Label Component Partial
+  
+  Usage:
+  <%- include('partials/ui/label', { 
+    for: 'inputId',
+    content: 'Label Text',
+    required: false,
+    class: ''
+  }) %>
+%>
+<%
+const baseClasses = 'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70';
+const extraClass = typeof className !== 'undefined' ? className : '';
+%>
+<label
+  <% if (typeof htmlFor !== 'undefined' && htmlFor) { %>for="<%= htmlFor %>"<% } %>
+  class="<%= baseClasses %> <%= extraClass %>"
+>
+  <%- content %><% if (typeof required !== 'undefined' && required) { %><span class="text-destructive ml-1">*</span><% } %>
+</label>
+

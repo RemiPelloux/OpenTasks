@@ -1,0 +1,88 @@
+<% const body = `
+<div class="flex min-h-screen flex-col">
+  <!-- Hero Section -->
+  <section class="container flex flex-col items-center justify-center gap-6 pb-8 pt-6 md:py-10 lg:py-32">
+    <div class="flex max-w-[980px] flex-col items-center gap-4 text-center">
+      <!-- Logo -->
+      <div class="mb-4">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-12 w-12">
+          <rect width="32" height="32" rx="8" fill="currentColor" class="text-foreground"/>
+          <path d="M8 16L13 21L24 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-background"/>
+          <circle cx="24" cy="8" r="3" fill="hsl(45 93% 47%)"/>
+          <circle cx="24" cy="8" r="1.5" fill="currentColor" class="text-background"/>
+        </svg>
+      </div>
+      
+      <!-- Badge -->
+      <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3 mr-1">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        </svg>
+        Internal Tool • Invite Only
+      </div>
+      
+      <h1 class="text-3xl font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1]">
+        AI-Native<br class="hidden sm:inline" />
+        <span class="text-muted-foreground">Project Management</span>
+      </h1>
+      
+      <p class="max-w-[750px] text-lg text-muted-foreground sm:text-xl">
+        Move a ticket to "Handle" and let Cursor Cloud Agent write the code, 
+        run tests, and create Pull Requests. Your Kanban board is now a control center.
+      </p>
+      
+      <!-- CTA Buttons -->
+      <div class="flex gap-4 mt-4">
+        <a href="/login" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8">
+          Sign In
+        </a>
+        <a href="/register" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8">
+          Join with Invite Code
+        </a>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Features Section -->
+  <section class="container space-y-6 py-8 md:py-12 lg:py-24 border-t">
+    <div class="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
+      <h2 class="font-bold text-2xl leading-[1.1] sm:text-3xl md:text-4xl">How It Works</h2>
+      <p class="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">Four steps from requirement to Pull Request</p>
+    </div>
+    
+    <div class="mx-auto grid justify-center gap-4 sm:grid-cols-2 md:max-w-[64rem] md:grid-cols-4">
+      <div class="relative overflow-hidden rounded-lg border bg-card p-6">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-xl font-bold mb-4">1</div>
+        <h3 class="font-bold">Create Ticket</h3>
+        <p class="text-sm text-muted-foreground mt-2">Describe your task with clear requirements. The AI uses this as context.</p>
+      </div>
+      
+      <div class="relative overflow-hidden rounded-lg border bg-card p-6">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[hsl(45_93%_47%_/_0.2)] text-[hsl(45_93%_47%)] text-xl font-bold mb-4">⚡</div>
+        <h3 class="font-bold">Drag to Handle</h3>
+        <p class="text-sm text-muted-foreground mt-2">Move ticket to "Handle" column to trigger the Cursor Cloud Agent.</p>
+      </div>
+      
+      <div class="relative overflow-hidden rounded-lg border bg-card p-6">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-xl font-bold mb-4">🤖</div>
+        <h3 class="font-bold">AI Codes</h3>
+        <p class="text-sm text-muted-foreground mt-2">Cursor Cloud clones your repo, implements the feature, runs tests.</p>
+      </div>
+      
+      <div class="relative overflow-hidden rounded-lg border bg-card p-6">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[hsl(142_71%_45%_/_0.2)] text-[hsl(142_71%_45%)] text-xl font-bold mb-4">✓</div>
+        <h3 class="font-bold">Review PR</h3>
+        <p class="text-sm text-muted-foreground mt-2">A Pull Request appears automatically. Review, tweak, and merge.</p>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Footer -->
+  <footer class="border-t py-6 md:py-0">
+    <div class="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
+      <p class="text-sm text-muted-foreground">OpenTasks • Internal Development Tool</p>
+    </div>
+  </footer>
+</div>
+` %>
+<%- include('layout', { body, title, csrfToken }) %>

@@ -1,0 +1,119 @@
+<header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  <div class="container flex h-14 items-center">
+    <!-- Logo -->
+    <a href="/dashboard" class="mr-6 flex items-center space-x-2">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8">
+        <rect width="32" height="32" rx="8" fill="currentColor" class="text-foreground"/>
+        <path d="M8 16L13 21L24 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-background"/>
+        <circle cx="24" cy="8" r="3" fill="hsl(45 93% 47%)"/>
+        <circle cx="24" cy="8" r="1.5" fill="currentColor" class="text-background"/>
+      </svg>
+      <span class="font-semibold tracking-tight text-lg">Open<span class="text-muted-foreground">Tasks</span></span>
+    </a>
+    
+    <!-- Desktop Navigation -->
+    <nav class="hidden md:flex items-center space-x-6 text-sm font-medium">
+      <a href="/dashboard" class="transition-colors hover:text-foreground/80 <%= typeof currentPath !== 'undefined' && currentPath === '/dashboard' ? 'text-foreground' : 'text-foreground/60' %>">
+        Dashboard
+      </a>
+      <% if (user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) { %>
+        <a href="/admin" class="transition-colors hover:text-foreground/80 <%= typeof currentPath !== 'undefined' && currentPath.startsWith('/admin') ? 'text-foreground' : 'text-foreground/60' %>">
+          Admin
+        </a>
+      <% } %>
+    </nav>
+    
+    <!-- Spacer -->
+    <div class="flex flex-1 items-center justify-end space-x-4">
+      <!-- Mobile Menu Button -->
+      <button id="mobile-menu-toggle" class="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground md:hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+      
+      <!-- User Menu -->
+      <div class="relative hidden md:block">
+        <button id="user-menu-toggle" class="flex items-center gap-2 rounded-full p-1 hover:bg-accent transition-colors">
+          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted font-medium text-xs">
+            <%= user.name.substring(0, 2).toUpperCase() %>
+          </div>
+          <span class="text-sm font-medium hidden lg:block"><%= user.name %></span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 text-muted-foreground"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        
+        <!-- Dropdown -->
+        <div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-56 rounded-md border bg-popover p-1 shadow-lg">
+          <div class="px-2 py-1.5 text-sm font-normal">
+            <div class="flex flex-col space-y-1">
+              <p class="text-sm font-medium leading-none"><%= user.name %></p>
+              <p class="text-xs leading-none text-muted-foreground"><%= user.email %></p>
+            </div>
+          </div>
+          <div class="h-px bg-border my-1"></div>
+          <a href="/settings" class="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            Settings
+          </a>
+          <div class="h-px bg-border my-1"></div>
+          <form action="/logout" method="POST" class="w-full">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-left">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+              Log out
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Mobile Navigation -->
+  <div id="mobile-menu" class="hidden md:hidden border-t">
+    <nav class="container py-4 space-y-2">
+      <a href="/dashboard" class="block px-2 py-1.5 rounded-md hover:bg-accent text-sm font-medium">Dashboard</a>
+      <% if (user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) { %>
+        <a href="/admin" class="block px-2 py-1.5 rounded-md hover:bg-accent text-sm font-medium">Admin</a>
+      <% } %>
+      <div class="h-px bg-border my-2"></div>
+      <div class="flex items-center gap-2 px-2 py-1.5">
+        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted font-medium text-xs">
+          <%= user.name.substring(0, 2).toUpperCase() %>
+        </div>
+        <div>
+          <p class="text-sm font-medium"><%= user.name %></p>
+          <p class="text-xs text-muted-foreground"><%= user.email %></p>
+        </div>
+      </div>
+      <form action="/logout" method="POST">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="w-full text-left px-2 py-1.5 rounded-md hover:bg-accent text-sm font-medium text-destructive">
+          Log out
+        </button>
+      </form>
+    </nav>
+  </div>
+</header>
+
+<script>
+  const userMenuToggle = document.getElementById('user-menu-toggle');
+  const userMenuDropdown = document.getElementById('user-menu-dropdown');
+  
+  if (userMenuToggle && userMenuDropdown) {
+    userMenuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userMenuDropdown.classList.toggle('hidden');
+    });
+    
+    document.addEventListener('click', () => {
+      userMenuDropdown.classList.add('hidden');
+    });
+  }
+  
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  
+  if (mobileMenuToggle && mobileMenu) {
+    mobileMenuToggle.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+  }
+</script>

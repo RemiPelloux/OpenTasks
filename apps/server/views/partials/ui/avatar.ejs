@@ -1,0 +1,41 @@
+<%#
+  Avatar Component Partial
+  
+  Usage:
+  <%- include('partials/ui/avatar', { 
+    src: 'image-url',      // optional
+    alt: 'User Name',
+    fallback: 'UN',        // initials to show if no image
+    size: 'default',       // sm, default, lg
+    class: ''
+  }) %>
+%>
+<%
+const sizes = {
+  sm: 'h-8 w-8 text-xs',
+  default: 'h-10 w-10 text-sm',
+  lg: 'h-12 w-12 text-base'
+};
+
+const baseClasses = 'relative flex shrink-0 overflow-hidden rounded-full';
+const sizeClass = sizes[size || 'default'];
+const extraClass = typeof className !== 'undefined' ? className : '';
+%>
+<div class="<%= baseClasses %> <%= sizeClass %> <%= extraClass %>">
+  <% if (typeof src !== 'undefined' && src) { %>
+    <img 
+      src="<%= src %>" 
+      alt="<%= alt || '' %>" 
+      class="aspect-square h-full w-full object-cover"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+    />
+    <div class="hidden items-center justify-center h-full w-full bg-muted font-medium text-muted-foreground">
+      <%= fallback || (alt ? alt.substring(0, 2).toUpperCase() : '?') %>
+    </div>
+  <% } else { %>
+    <div class="flex items-center justify-center h-full w-full bg-muted font-medium text-muted-foreground">
+      <%= fallback || (typeof alt !== 'undefined' && alt ? alt.substring(0, 2).toUpperCase() : '?') %>
+    </div>
+  <% } %>
+</div>
+

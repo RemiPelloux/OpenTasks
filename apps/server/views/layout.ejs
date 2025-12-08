@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <meta name="theme-color" content="hsl(240 10% 3.9%)">
+  <title><%= title %></title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/styles/output.css">
+  
+  <%- typeof head !== 'undefined' ? head : '' %>
+</head>
+<body class="min-h-screen bg-background font-sans antialiased">
+  <% if (typeof isAuthenticated !== 'undefined' && isAuthenticated && typeof user !== 'undefined') { %>
+    <%- include('partials/navbar') %>
+  <% } %>
+  
+  <main class="<%= typeof isAuthenticated !== 'undefined' && isAuthenticated ? '' : 'min-h-screen' %>">
+    <%- body %>
+  </main>
+  
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+  
+  <!-- Global Scripts -->
+  <script>
+    window.getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+    
+    window.showToast = (message, type = 'default') => {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        default: 'bg-foreground text-background',
+        success: 'bg-status-success text-white',
+        error: 'bg-destructive text-white',
+        warning: 'bg-status-processing text-black'
+      };
+      toast.className = 'px-4 py-3 rounded-lg shadow-lg animate-slide-in ' + (colors[type] || colors.default);
+      toast.innerHTML = '<div class="flex items-center gap-2"><span class="text-sm font-medium">' + message + '</span><button onclick="this.parentElement.parentElement.remove()" class="ml-2 opacity-70 hover:opacity-100">×</button></div>';
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    };
+  </script>
+  
+  <%- typeof scripts !== 'undefined' ? scripts : '' %>
+</body>
+</html>

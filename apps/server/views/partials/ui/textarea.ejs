@@ -1,0 +1,29 @@
+<%#
+  Textarea Component Partial
+  
+  Usage:
+  <%- include('partials/ui/textarea', { 
+    name: 'fieldName',
+    id: 'fieldId',
+    placeholder: '',
+    value: '',
+    rows: 4,
+    required: false,
+    disabled: false,
+    class: ''
+  }) %>
+%>
+<%
+const baseClasses = 'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y';
+const extraClass = typeof className !== 'undefined' ? className : '';
+%>
+<textarea
+  <% if (typeof name !== 'undefined' && name) { %>name="<%= name %>"<% } %>
+  <% if (typeof id !== 'undefined' && id) { %>id="<%= id %>"<% } %>
+  <% if (typeof placeholder !== 'undefined' && placeholder) { %>placeholder="<%= placeholder %>"<% } %>
+  rows="<%= rows || 4 %>"
+  class="<%= baseClasses %> <%= extraClass %>"
+  <%= typeof required !== 'undefined' && required ? 'required' : '' %>
+  <%= typeof disabled !== 'undefined' && disabled ? 'disabled' : '' %>
+><%= typeof value !== 'undefined' ? value : '' %></textarea>
+

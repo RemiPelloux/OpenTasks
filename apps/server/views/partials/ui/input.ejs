@@ -1,0 +1,34 @@
+<%#
+  Input Component Partial
+  
+  Usage:
+  <%- include('partials/ui/input', { 
+    type: 'text',       // text, email, password, etc.
+    name: 'fieldName',
+    id: 'fieldId',
+    placeholder: '',
+    value: '',
+    required: false,
+    disabled: false,
+    autofocus: false,
+    class: ''
+  }) %>
+%>
+<%
+const baseClasses = 'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+const extraClass = typeof className !== 'undefined' ? className : '';
+%>
+<input
+  type="<%= type || 'text' %>"
+  <% if (typeof name !== 'undefined' && name) { %>name="<%= name %>"<% } %>
+  <% if (typeof id !== 'undefined' && id) { %>id="<%= id %>"<% } %>
+  <% if (typeof placeholder !== 'undefined' && placeholder) { %>placeholder="<%= placeholder %>"<% } %>
+  <% if (typeof value !== 'undefined' && value) { %>value="<%= value %>"<% } %>
+  class="<%= baseClasses %> <%= extraClass %>"
+  <%= typeof required !== 'undefined' && required ? 'required' : '' %>
+  <%= typeof disabled !== 'undefined' && disabled ? 'disabled' : '' %>
+  <%= typeof autofocus !== 'undefined' && autofocus ? 'autofocus' : '' %>
+  <% if (typeof minlength !== 'undefined') { %>minlength="<%= minlength %>"<% } %>
+  <% if (typeof maxlength !== 'undefined') { %>maxlength="<%= maxlength %>"<% } %>
+/>
+

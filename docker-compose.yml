@@ -1,0 +1,87 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: opentasks-postgres
+    environment:
+      POSTGRES_USER: opentasks
+      POSTGRES_PASSWORD: opentasks_secret
+      POSTGRES_DB: opentasks
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opentasks -d opentasks"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for Session Store & Job Queue
+  redis:
+    image: redis:7-alpine
+    container_name: opentasks-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Main Express Server (MPA)
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: opentasks-server
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://opentasks:opentasks_secret@postgres:5432/opentasks?schema=public
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      CSRF_SECRET: ${CSRF_SECRET}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Cloud Bridge Worker (Cursor API Client)
+  cloud-bridge:
+    build:
+      context: .
+      dockerfile: apps/cloud-bridge/Dockerfile
+    container_name: opentasks-cloud-bridge
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://opentasks:opentasks_secret@postgres:5432/opentasks?schema=public
+      REDIS_URL: redis://redis:6379
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      CURSOR_API_BASE_URL: https://api.cursor.com
+      MAX_PROJECT_COST_CENTS: ${MAX_PROJECT_COST_CENTS:-10000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: opentasks-network
+

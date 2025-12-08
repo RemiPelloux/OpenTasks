@@ -1,0 +1,150 @@
+<%
+function renderInviteRow(ic) {
+  const statusColor = ic.isActive ? 'bg-green-500/10 text-green-400' : 'bg-destructive/10 text-destructive';
+  
+  return `
+    <tr class="hover:bg-muted/50">
+      <td class="p-4">
+        <code class="text-sm font-mono bg-muted px-2 py-1 rounded select-all">${ic.code}</code>
+      </td>
+      <td class="p-4 text-sm text-muted-foreground">${ic.description || '—'}</td>
+      <td class="p-4">
+        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">${ic.type}</span>
+      </td>
+      <td class="p-4 text-sm">
+        ${ic.type === 'UNLIMITED' ? '∞' : ic.currentUses + '/' + ic.maxUses}
+        ${ic.usedBy ? '<br><span class="text-muted-foreground text-xs">by ' + ic.usedBy.name + '</span>' : ''}
+      </td>
+      <td class="p-4 text-sm text-muted-foreground">${ic.createdBy?.name || 'System'}</td>
+      <td class="p-4">
+        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColor}">
+          ${ic.isActive ? 'Active' : 'Inactive'}
+        </span>
+        ${ic.expiresAt ? '<br><span class="text-xs text-muted-foreground">Expires: ' + new Date(ic.expiresAt).toLocaleDateString() + '</span>' : ''}
+      </td>
+      <td class="p-4">
+        <div class="flex items-center gap-2">
+          <form action="/admin/invites/${ic.id}/toggle-active" method="POST" class="inline">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
+            <button type="submit" class="text-sm hover:underline ${ic.isActive ? 'text-amber-400' : 'text-green-400'}">
+              ${ic.isActive ? 'Disable' : 'Enable'}
+            </button>
+          </form>
+          <form action="/admin/invites/${ic.id}/delete" method="POST" class="inline" onsubmit="return confirm('Delete this invite code?')">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
+            <button type="submit" class="text-sm text-destructive hover:underline">Delete</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+let bodyContent = `
+<div class="container py-6">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <a href="/admin" class="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 mr-1"><path d="m15 18-6-6 6-6"/></svg>
+        Back to Admin
+      </a>
+      <h1 class="text-3xl font-bold tracking-tight">Invite Codes</h1>
+      <p class="text-muted-foreground">Create and manage invite codes for new users</p>
+    </div>
+    <button onclick="document.getElementById('create-invite-modal').classList.remove('hidden')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 mr-2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      Create Invite Code
+    </button>
+  </div>
+  
+  <div class="rounded-lg border bg-card overflow-hidden">
+    <table class="w-full">
+      <thead>
+        <tr class="border-b bg-muted/50">
+          <th class="text-left p-4 font-medium">Code</th>
+          <th class="text-left p-4 font-medium">Description</th>
+          <th class="text-left p-4 font-medium">Type</th>
+          <th class="text-left p-4 font-medium">Usage</th>
+          <th class="text-left p-4 font-medium">Created By</th>
+          <th class="text-left p-4 font-medium">Status</th>
+          <th class="text-left p-4 font-medium">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+`;
+
+if (inviteCodes.length === 0) {
+  bodyContent += `
+        <tr>
+          <td colspan="7" class="p-8 text-center text-muted-foreground">No invite codes found. Create one to invite users.</td>
+        </tr>
+  `;
+} else {
+  for (const ic of inviteCodes) {
+    bodyContent += renderInviteRow(ic);
+  }
+}
+
+bodyContent += `
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Create Invite Modal -->
+<div id="create-invite-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+  <div class="bg-background border rounded-lg w-full max-w-md mx-4 shadow-lg">
+    <div class="p-6 border-b">
+      <h2 class="text-lg font-semibold">Create Invite Code</h2>
+      <p class="text-sm text-muted-foreground">Generate a new invite code for users</p>
+    </div>
+    
+    <form action="/admin/invites" method="POST">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      
+      <div class="p-6 space-y-4">
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-none">Description (optional)</label>
+          <input type="text" name="description" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="e.g., For marketing team">
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-none">Type</label>
+          <select name="type" id="invite-type" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" onchange="document.getElementById('max-uses-group').style.display = this.value === 'UNLIMITED' ? 'none' : 'block'">
+            <option value="SINGLE_USE">Single Use</option>
+            <option value="MULTI_USE">Multi Use</option>
+            <option value="UNLIMITED">Unlimited</option>
+          </select>
+        </div>
+        
+        <div id="max-uses-group" class="space-y-2">
+          <label class="text-sm font-medium leading-none">Max Uses</label>
+          <input type="number" name="maxUses" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="1" min="1">
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-none">Expires In</label>
+          <select name="expiresIn" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <option value="never">Never</option>
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+            <option value="90">90 days</option>
+            <option value="365">1 year</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="flex items-center justify-end gap-4 p-6 border-t bg-muted/40">
+        <button type="button" onclick="document.getElementById('create-invite-modal').classList.add('hidden')" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+          Cancel
+        </button>
+        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+          Create Code
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+`;
+%>
+<%- include('../layout', { body: bodyContent, title, csrfToken, isAuthenticated: true, user, currentPath }) %>

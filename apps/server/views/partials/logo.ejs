@@ -1,0 +1,54 @@
+<%#
+  OpenTasks Logo Partial
+  
+  Usage:
+  <%- include('partials/logo', { 
+    size: 'default', // sm, default, lg, xl
+    showText: true,  // show "OpenTasks" text
+    class: ''
+  }) %>
+%>
+<%
+const sizes = {
+  sm: { icon: 'h-6 w-6', text: 'text-base' },
+  default: { icon: 'h-8 w-8', text: 'text-lg' },
+  lg: { icon: 'h-10 w-10', text: 'text-xl' },
+  xl: { icon: 'h-12 w-12', text: 'text-2xl' }
+};
+
+const sizeConfig = sizes[size || 'default'];
+const showTextFlag = typeof showText === 'undefined' ? true : showText;
+const extraClass = typeof className !== 'undefined' ? className : '';
+%>
+<div class="flex items-center gap-2 <%= extraClass %>">
+  <svg 
+    viewBox="0 0 32 32" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+    class="<%= sizeConfig.icon %>"
+  >
+    <!-- Background Circle -->
+    <rect width="32" height="32" rx="8" fill="currentColor" class="text-foreground"/>
+    
+    <!-- Task checkmark paths -->
+    <path 
+      d="M8 16L13 21L24 10" 
+      stroke="currentColor" 
+      stroke-width="2.5" 
+      stroke-linecap="round" 
+      stroke-linejoin="round"
+      class="text-background"
+    />
+    
+    <!-- AI sparkle indicator -->
+    <circle cx="24" cy="8" r="3" fill="currentColor" class="text-status-processing"/>
+    <circle cx="24" cy="8" r="1.5" fill="currentColor" class="text-background"/>
+  </svg>
+  
+  <% if (showTextFlag) { %>
+    <span class="font-semibold tracking-tight <%= sizeConfig.text %>">
+      Open<span class="text-muted-foreground">Tasks</span>
+    </span>
+  <% } %>
+</div>
+

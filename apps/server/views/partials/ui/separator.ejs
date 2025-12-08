@@ -1,0 +1,21 @@
+<%#
+  Separator Component Partial
+  
+  Usage:
+  <%- include('partials/ui/separator', { 
+    orientation: 'horizontal', // horizontal, vertical
+    class: ''
+  }) %>
+%>
+<%
+const orientations = {
+  horizontal: 'h-[1px] w-full',
+  vertical: 'h-full w-[1px]'
+};
+
+const baseClasses = 'shrink-0 bg-border';
+const orientationClass = orientations[orientation || 'horizontal'];
+const extraClass = typeof className !== 'undefined' ? className : '';
+%>
+<div role="none" class="<%= baseClasses %> <%= orientationClass %> <%= extraClass %>"></div>
+
