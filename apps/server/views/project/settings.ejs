@@ -108,6 +108,45 @@ let bodyContent = `
       </div>
     </div>
     
+    <!-- Branch Configuration -->
+    <div class="rounded-lg border bg-card">
+      <div class="p-6 border-b">
+        <h3 class="font-semibold flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+          Branch Configuration
+        </h3>
+        <p class="text-sm text-muted-foreground">Define branches for different parts of your codebase</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="space-y-2">
+          <label for="defaultBranch" class="text-sm font-medium leading-none">Default Branch</label>
+          <input type="text" id="defaultBranch" name="defaultBranch" value="${project.defaultBranch || 'main'}" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="main">
+          <p class="text-xs text-muted-foreground">The default branch for new tickets</p>
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-none">Branch Presets</label>
+          <p class="text-xs text-muted-foreground mb-2">Quick-select options when creating tickets (one per line: name=branch)</p>
+          <textarea id="branchPresetsText" name="branchPresetsText" rows="4" class="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono resize-y" placeholder="Backend=master
+Frontend=frontend-dev
+Hotfix=hotfix">${(function() {
+            try {
+              const presets = JSON.parse(project.branchPresets || '[]');
+              return presets.map(p => p.name + '=' + p.branch).join('\\n');
+            } catch { return ''; }
+          })()}</textarea>
+        </div>
+        
+        <div class="p-3 rounded-md bg-muted/50 text-sm">
+          <p class="font-medium mb-1">Example setup for your project:</p>
+          <code class="text-xs text-muted-foreground">
+            Backend=master<br>
+            Frontend=frontend-dev
+          </code>
+        </div>
+      </div>
+    </div>
+    
     <!-- Team Members -->
     <div class="rounded-lg border bg-card">
       <div class="p-6 border-b">

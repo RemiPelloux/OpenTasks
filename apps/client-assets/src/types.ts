@@ -28,6 +28,7 @@ export interface Ticket {
   status: ColumnId;
   priority: Priority;
   position: number;
+  targetBranch?: string;
   aiSummary?: string;
   prLink?: string;
   agentId?: string;
@@ -38,6 +39,11 @@ export interface Ticket {
   projectId: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BranchPreset {
+  name: string;
+  branch: string;
 }
 
 export interface Column {
@@ -52,4 +58,6 @@ export interface BoardState {
   projectName: string;
   tickets: Ticket[];
   members: User[];
+  branchPresets: BranchPreset[];
+  defaultBranch: string;
 }

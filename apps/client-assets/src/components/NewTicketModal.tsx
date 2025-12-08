@@ -1,22 +1,31 @@
 /**
  * New Ticket Modal Component
- * Form for creating new tickets
+ * Form for creating new tickets with branch selection
  */
 
 import { useState, useCallback } from 'react';
-import type { Ticket, Priority, ColumnId } from '../types';
+import type { Ticket, Priority, ColumnId, BranchPreset } from '../types';
 
 interface NewTicketModalProps {
   projectId: string;
+  branchPresets: BranchPreset[];
+  defaultBranch: string;
   onClose: () => void;
   onSubmit: (ticket: Ticket) => void;
 }
 
-export function NewTicketModal({ projectId, onClose, onSubmit }: NewTicketModalProps) {
+export function NewTicketModal({
+  projectId,
+  branchPresets,
+  defaultBranch,
+  onClose,
+  onSubmit,
+}: NewTicketModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Priority>('MEDIUM');
   const [status, setStatus] = useState<ColumnId>('BACKLOG');
+  const [targetBranch, setTargetBranch] = useState(defaultBranch);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -45,6 +54,7 @@ export function NewTicketModal({ projectId, onClose, onSubmit }: NewTicketModalP
             description: description.trim(),
             priority,
             status,
+            targetBranch,
           }),
         });
 
@@ -61,7 +71,7 @@ export function NewTicketModal({ projectId, onClose, onSubmit }: NewTicketModalP
         setIsSubmitting(false);
       }
     },
-    [projectId, title, description, priority, status, onSubmit]
+    [projectId, title, description, priority, status, targetBranch, onSubmit]
   );
 
   // Close on escape
@@ -145,6 +155,54 @@ export function NewTicketModal({ projectId, onClose, onSubmit }: NewTicketModalP
               />
               <p className="form-hint">
                 The AI will use this description as context when implementing
+              </p>
+            </div>
+
+            {/* Branch Selection */}
+            <div className="form-group">
+              <label htmlFor="ticket-branch" className="form-label">
+                Target Branch
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="inline-block w-4 h-4 ml-1 text-muted-foreground"
+                >
+                  <line x1="6" x2="6" y1="3" y2="15" />
+                  <circle cx="18" cy="6" r="3" />
+                  <circle cx="6" cy="18" r="3" />
+                  <path d="M18 9a9 9 0 0 1-9 9" />
+                </svg>
+              </label>
+              {branchPresets.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {branchPresets.map((preset) => (
+                    <button
+                      key={preset.branch}
+                      type="button"
+                      className={`branch-preset-btn ${
+                        targetBranch === preset.branch ? 'active' : ''
+                      }`}
+                      onClick={() => setTargetBranch(preset.branch)}
+                    >
+                      {preset.name}
+                      <span className="branch-name">{preset.branch}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <input
+                id="ticket-branch"
+                type="text"
+                className="form-input font-mono"
+                placeholder="main"
+                value={targetBranch}
+                onChange={(e) => setTargetBranch(e.target.value)}
+              />
+              <p className="form-hint">
+                The branch the AI will work on for this ticket
               </p>
             </div>
 

@@ -68,12 +68,22 @@ projectRoutes.get('/:id/board', async (req, res) => {
       return;
     }
 
+    // Parse branch presets
+    let branchPresets: Array<{ name: string; branch: string }> = [];
+    try {
+      branchPresets = project.branchPresets ? JSON.parse(project.branchPresets) : [];
+    } catch {
+      // Ignore parse errors
+    }
+
     // Prepare board state for React hydration
     const boardState = JSON.stringify({
       projectId: project.id,
       projectName: project.name,
       tickets: project.tickets,
       members: project.members.map((m) => m.user),
+      branchPresets,
+      defaultBranch: project.defaultBranch || 'main',
     });
 
     res.render('project/board', {
@@ -184,7 +194,7 @@ projectRoutes.post('/:id/settings', async (req, res) => {
       return;
     }
 
-    const { name, description, githubRepoUrl } = req.body;
+    const { name, description, githubRepoUrl, defaultBranch, branchPresetsText } = req.body;
 
     // Handle API key update (only if provided)
     let cursorApiKeyEncrypted: string | undefined;
@@ -194,12 +204,32 @@ projectRoutes.post('/:id/settings', async (req, res) => {
       cursorApiKeyEncrypted = encrypt(req.body.cursorApiKey);
     }
 
+    // Parse branch presets from text format (name=branch per line)
+    let branchPresets: string | null = null;
+    if (branchPresetsText) {
+      try {
+        const presets = branchPresetsText
+          .split('\n')
+          .map((line: string) => line.trim())
+          .filter((line: string) => line && line.includes('='))
+          .map((line: string) => {
+            const [name, branch] = line.split('=').map((s: string) => s.trim());
+            return { name, branch };
+          });
+        branchPresets = JSON.stringify(presets);
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
     await prisma.project.update({
       where: { id },
       data: {
         name: name?.trim() || undefined,
         description: description?.trim() || null,
         githubRepoUrl: githubRepoUrl?.trim() || null,
+        defaultBranch: defaultBranch?.trim() || 'main',
+        branchPresets,
         ...(cursorApiKeyEncrypted && { cursorApiKeyEncrypted }),
       },
     });

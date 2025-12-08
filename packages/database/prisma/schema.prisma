@@ -102,11 +102,10 @@ model Project {
   cursorApiKeyEncrypted String?  @map("cursor_api_key_encrypted") @db.Text
   githubRepoUrl         String?  @map("github_repo_url")
   
-  // System prompt for AI agent context
-  systemPrompt String?  @map("system_prompt") @db.Text
-  
-  // Cost tracking
-  monthlyBudgetCents Int @default(10000) @map("monthly_budget_cents")
+  // Branch configuration - JSON array of presets
+  // e.g., [{"name": "Backend", "branch": "master"}, {"name": "Frontend", "branch": "frontend-dev"}]
+  branchPresets String?  @map("branch_presets") @db.Text
+  defaultBranch String?  @map("default_branch") @default("main")
   
   isArchived Boolean  @default(false) @map("is_archived")
   createdAt DateTime @default(now()) @map("created_at")
@@ -152,6 +151,9 @@ model Ticket {
   status      TicketStatus @default(BACKLOG)
   priority    Priority     @default(MEDIUM)
   position    Int          @default(0)
+  
+  // Branch targeting - which branch should the AI work on
+  targetBranch String?     @map("target_branch")
   
   // AI-related fields
   aiSummary   String?      @map("ai_summary") @db.Text

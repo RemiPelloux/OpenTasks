@@ -81,6 +81,31 @@ const bodyContent = `
         </div>
       </div>
       
+      <div class="h-px bg-border"></div>
+      
+      <!-- Branch Configuration -->
+      <div class="p-6 space-y-4">
+        <div>
+          <h3 class="font-semibold flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+            Branch Configuration
+          </h3>
+          <p class="text-sm text-muted-foreground">Optional: Define branches for different parts of your codebase</p>
+        </div>
+        
+        <div class="space-y-2">
+          <label for="defaultBranch" class="text-sm font-medium leading-none">Default Branch</label>
+          <input type="text" id="defaultBranch" name="defaultBranch" value="main" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="main">
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-none">Branch Presets <span class="text-muted-foreground font-normal">(optional)</span></label>
+          <textarea id="branchPresetsText" name="branchPresetsText" rows="3" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono resize-y" placeholder="Backend=master
+Frontend=frontend-dev"></textarea>
+          <p class="text-xs text-muted-foreground">One per line: name=branch. Example: Backend=master, Frontend=frontend-dev</p>
+        </div>
+      </div>
+      
       <div class="flex items-center justify-end gap-4 p-6 border-t bg-muted/40">
         <a href="/dashboard" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
           Cancel

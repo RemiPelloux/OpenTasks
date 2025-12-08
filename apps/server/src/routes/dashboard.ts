@@ -96,6 +96,7 @@ dashboardRoutes.post('/new-project', async (req, res) => {
     }
 
     const { name, description, githubRepoUrl, cursorApiKey } = parseResult.data;
+    const { defaultBranch, branchPresetsText } = req.body;
 
     // Generate slug
     let slug = slugify(name, { lower: true, strict: true });
@@ -112,6 +113,24 @@ dashboardRoutes.post('/new-project', async (req, res) => {
     // Encrypt API key
     const cursorApiKeyEncrypted = encrypt(cursorApiKey);
 
+    // Parse branch presets from text format (name=branch per line)
+    let branchPresets: string | null = null;
+    if (branchPresetsText) {
+      try {
+        const presets = branchPresetsText
+          .split('\n')
+          .map((line: string) => line.trim())
+          .filter((line: string) => line && line.includes('='))
+          .map((line: string) => {
+            const [presetName, branch] = line.split('=').map((s: string) => s.trim());
+            return { name: presetName, branch };
+          });
+        branchPresets = JSON.stringify(presets);
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
     // Create project with owner membership
     const project = await prisma.project.create({
       data: {
@@ -120,6 +139,8 @@ dashboardRoutes.post('/new-project', async (req, res) => {
         slug,
         githubRepoUrl,
         cursorApiKeyEncrypted,
+        defaultBranch: defaultBranch?.trim() || 'main',
+        branchPresets,
         members: {
           create: {
             userId,

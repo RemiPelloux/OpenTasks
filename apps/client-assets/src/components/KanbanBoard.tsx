@@ -257,6 +257,8 @@ export function KanbanBoard() {
       {isNewTicketOpen && (
         <NewTicketModal
           projectId={boardState.projectId}
+          branchPresets={boardState.branchPresets || []}
+          defaultBranch={boardState.defaultBranch || 'main'}
           onClose={() => setIsNewTicketOpen(false)}
           onSubmit={handleNewTicket}
         />

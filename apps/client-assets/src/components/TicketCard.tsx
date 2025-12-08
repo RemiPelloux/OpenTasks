@@ -58,9 +58,17 @@ export function TicketCard({ ticket, isDragging = false, onClick }: TicketCardPr
 
       {/* Meta Row */}
       <div className="ticket-meta">
-        <span className={`ticket-priority ${priorityClasses[ticket.priority]}`}>
-          {ticket.priority}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`ticket-priority ${priorityClasses[ticket.priority]}`}>
+            {ticket.priority}
+          </span>
+          {ticket.targetBranch && (
+            <span className="ticket-branch" title={`Target: ${ticket.targetBranch}`}>
+              <BranchIcon />
+              {ticket.targetBranch}
+            </span>
+          )}
+        </div>
         
         <div className="flex items-center gap-2">
           {ticket.assignee && (
@@ -123,6 +131,24 @@ function GitPRIcon() {
         fillRule="evenodd"
         d="M7.177 3.073L9.573.677A.25.25 0 0110 .854v4.792a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM11 2.5h-1V4h1a1 1 0 011 1v5.628a2.251 2.251 0 101.5 0V5A2.5 2.5 0 0011 2.5zm1 10.25a.75.75 0 111.5 0 .75.75 0 01-1.5 0zM3.75 12a.75.75 0 100 1.5.75.75 0 000-1.5z"
       />
+    </svg>
+  );
+}
+
+// Branch icon
+function BranchIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      style={{ width: '0.75rem', height: '0.75rem' }}
+    >
+      <line x1="6" x2="6" y1="3" y2="15" />
+      <circle cx="18" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <path d="M18 9a9 9 0 0 1-9 9" />
     </svg>
   );
 }
