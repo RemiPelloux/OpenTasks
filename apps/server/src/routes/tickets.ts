@@ -8,6 +8,7 @@ import { prisma, sanitizePromptInput } from '@opentasks/database';
 import { requireAuth } from '../middleware/auth.js';
 import { z } from 'zod';
 import { addTicketJob } from '../lib/queue.js';
+import { notifySlack } from '../services/slack.js';
 
 export const ticketRoutes = Router();
 
@@ -59,7 +60,10 @@ ticketRoutes.get('/:projectId', async (req, res) => {
     }
 
     const tickets = await prisma.ticket.findMany({
-      where: { projectId },
+      where: { 
+        projectId,
+        isArchived: false, // Exclude archived tickets from Kanban board
+      },
       include: {
         assignee: {
           select: { id: true, name: true, email: true, avatarUrl: true },
@@ -356,6 +360,11 @@ async function queueForAIProcessing(ticketId: string, projectId: string): Promis
     });
 
     console.log(`[AI Queue] Ticket ${ticketId} queued for AI processing (job: ${job.id})`);
+
+    // Send Slack notification
+    notifySlack(ticketId, 'queued').catch((err) => {
+      console.error('[Slack] Failed to send queued notification:', err);
+    });
   } catch (error) {
     console.error('Failed to queue AI job:', error);
   }

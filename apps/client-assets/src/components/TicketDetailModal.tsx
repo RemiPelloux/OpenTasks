@@ -7,6 +7,13 @@ import { useState, useCallback } from 'react';
 import type { Ticket, Priority, ColumnId, AgentStatus } from '../types';
 import { AgentStatusPanel } from './AgentStatusPanel';
 
+// Toast helper
+function showToast(message: string, type: 'success' | 'error' | 'warning' = 'success') {
+  if (typeof window !== 'undefined' && (window as any).showToast) {
+    (window as any).showToast(message, type);
+  }
+}
+
 interface TicketDetailModalProps {
   ticket: Ticket;
   projectId: string;
@@ -90,7 +97,7 @@ export function TicketDetailModal({
   }, [projectId, ticket.id, title, description, priority, status, onUpdate]);
 
   const handleDelete = useCallback(async () => {
-    if (!confirm('Are you sure you want to delete this ticket?')) {
+    if (!confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
       return;
     }
 
@@ -109,14 +116,49 @@ export function TicketDetailModal({
         throw new Error('Failed to delete ticket');
       }
 
+      showToast(`Ticket "${ticket.title}" deleted successfully`, 'success');
       onUpdate({ ...ticket, status: 'CANCELLED' as ColumnId });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete ticket');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to delete ticket';
+      setError(errorMsg);
+      showToast(errorMsg, 'error');
     } finally {
       setIsSubmitting(false);
     }
   }, [projectId, ticket, onUpdate, onClose]);
+
+  const handleArchive = useCallback(async () => {
+    if (!confirm('Archive this ticket? It will be moved to the Archive tab.')) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const csrfToken = getCsrfToken();
+      const response = await fetch(`/api/tickets/${ticket.id}/archive`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': csrfToken,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to archive ticket');
+      }
+
+      showToast(`Ticket "${ticket.title}" archived`, 'success');
+      onUpdate({ ...ticket, isArchived: true });
+      onClose();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to archive ticket';
+      setError(errorMsg);
+      showToast(errorMsg, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [ticket, onUpdate, onClose]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -344,8 +386,24 @@ export function TicketDetailModal({
                 className="btn btn-destructive"
                 onClick={handleDelete}
                 disabled={isSubmitting}
+                title="Permanently delete this ticket"
               >
                 Delete
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleArchive}
+                disabled={isSubmitting}
+                title="Archive this ticket"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 mr-1">
+                  <path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8" />
+                  <path d="M3.26 8.26 8 3l4 4" />
+                  <rect x="3" y="10" width="18" height="12" rx="2" />
+                  <path d="M10 15h4" />
+                </svg>
+                Archive
               </button>
               <div className="flex-1" />
               <button

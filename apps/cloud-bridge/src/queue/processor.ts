@@ -7,6 +7,7 @@ import type { Job } from 'bullmq';
 import { prisma, decrypt, sanitizePromptInput } from '@opentasks/database';
 import { CursorApiClient } from '../cursor-api/client.js';
 import { checkCostGuardrails, recordUsage } from '../services/cost-guardrails.js';
+import { notifySlack } from '../services/slack.js';
 
 interface TicketJobData {
   jobId: string;
@@ -107,6 +108,11 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
       data: { agentId: agentResponse.id },
     });
 
+    // Send Slack notification for processing started
+    notifySlack(ticketId, 'processing').catch((err) => {
+      console.error('[Slack] Failed to send processing notification:', err);
+    });
+
     // Poll for completion (with exponential backoff)
     const result = await cursorClient.waitForCompletion(agentResponse.id, {
       maxAttempts: 60, // 30 minutes max (30s intervals with backoff)
@@ -145,6 +151,11 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
       });
 
       console.log(`✅ Agent completed. PR: ${result.prUrl}`);
+
+      // Send Slack notification for completion
+      notifySlack(ticketId, 'completed').catch((err) => {
+        console.error('[Slack] Failed to send completed notification:', err);
+      });
     } else {
       throw new Error(result.error || 'Agent failed with unknown error');
     }
@@ -168,6 +179,13 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
         status: 'TODO',
         aiSummary: `AI processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       },
+    });
+
+    // Send Slack notification for error
+    notifySlack(ticketId, 'error', {
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    }).catch((err) => {
+      console.error('[Slack] Failed to send error notification:', err);
     });
 
     throw error;

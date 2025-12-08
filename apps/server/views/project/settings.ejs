@@ -147,6 +147,76 @@ Hotfix=hotfix">${(function() {
       </div>
     </div>
     
+    <!-- Slack Notifications -->
+    <div class="rounded-lg border bg-card">
+      <div class="p-6 border-b">
+        <h3 class="font-semibold flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/></svg>
+          Slack Notifications
+        </h3>
+        <p class="text-sm text-muted-foreground">Get notified in Slack when ticket events occur</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="space-y-2">
+          <label for="slackWebhook" class="text-sm font-medium leading-none">
+            Webhook URL
+            ${project.hasSlackWebhook ? '<span class="text-green-400 text-xs ml-2">✓ Configured</span>' : ''}
+          </label>
+          <div class="flex gap-2">
+            <input type="password" id="slackWebhook" name="slackWebhook" class="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm font-mono" placeholder="${project.hasSlackWebhook ? '••••••••••••••••' : 'https://hooks.slack.com/services/...'}">
+            <button type="button" id="test-slack-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed" ${project.hasSlackWebhook ? '' : 'disabled'}>
+              <svg id="test-slack-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 mr-2"><path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2L11 13"/></svg>
+              <span id="test-slack-text">Test</span>
+            </button>
+          </div>
+          <p class="text-xs text-muted-foreground">Leave empty to keep current webhook. <a href="https://api.slack.com/messaging/webhooks" target="_blank" class="underline hover:text-foreground">Create a webhook</a></p>
+          <div id="slack-test-result" class="hidden text-sm mt-2"></div>
+        </div>
+        
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-none">Notification Events</label>
+          <p class="text-xs text-muted-foreground mb-3">Choose which events should send a Slack notification</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="flex items-center gap-3 p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors">
+              <input type="checkbox" name="slackEvents[]" value="queued" class="h-4 w-4 rounded border-input" ${project.slackEvents?.includes('queued') ? 'checked' : ''}>
+              <div>
+                <span class="text-sm font-medium">📋 Queued</span>
+                <p class="text-xs text-muted-foreground">Ticket queued for AI</p>
+              </div>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors">
+              <input type="checkbox" name="slackEvents[]" value="processing" class="h-4 w-4 rounded border-input" ${project.slackEvents?.includes('processing') ? 'checked' : ''}>
+              <div>
+                <span class="text-sm font-medium">⚡ Processing</span>
+                <p class="text-xs text-muted-foreground">AI started working</p>
+              </div>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors">
+              <input type="checkbox" name="slackEvents[]" value="completed" class="h-4 w-4 rounded border-input" ${project.slackEvents?.includes('completed') ? 'checked' : ''}>
+              <div>
+                <span class="text-sm font-medium">✅ Completed</span>
+                <p class="text-xs text-muted-foreground">PR ready for review</p>
+              </div>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors">
+              <input type="checkbox" name="slackEvents[]" value="error" class="h-4 w-4 rounded border-input" ${project.slackEvents?.includes('error') ? 'checked' : ''}>
+              <div>
+                <span class="text-sm font-medium">❌ Error</span>
+                <p class="text-xs text-muted-foreground">AI processing failed</p>
+              </div>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-md border cursor-pointer hover:bg-muted/50 transition-colors">
+              <input type="checkbox" name="slackEvents[]" value="validated" class="h-4 w-4 rounded border-input" ${project.slackEvents?.includes('validated') ? 'checked' : ''}>
+              <div>
+                <span class="text-sm font-medium">🎉 Validated</span>
+                <p class="text-xs text-muted-foreground">Ticket completed</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <!-- Team Members -->
     <div class="rounded-lg border bg-card" id="team-members-section">
       <div class="p-6 border-b flex items-center justify-between">
@@ -257,7 +327,7 @@ bodyContent += `
             <p class="font-medium">Delete Project</p>
             <p class="text-sm text-muted-foreground">Permanently delete this project and all ${project._count.tickets} tickets</p>
           </div>
-          <form action="/project/${project.id}/delete" method="POST" onsubmit="return confirm('Are you sure? This cannot be undone.')">
+          <form action="/project/${project.id}/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete the project \\'${project.name}\\'?\\n\\nThis will permanently delete all ${project._count.tickets} tickets and cannot be undone.')">
             <input type="hidden" name="_csrf" value="${csrfToken}">
             <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-3">
               Delete Project
@@ -678,6 +748,83 @@ bodyContent += `
   
   // Initial attachment
   attachMemberListeners(memberList);
+})();
+
+// Slack Webhook Testing
+(function() {
+  const testSlackBtn = document.getElementById('test-slack-btn');
+  const testSlackText = document.getElementById('test-slack-text');
+  const testSlackIcon = document.getElementById('test-slack-icon');
+  const slackWebhookInput = document.getElementById('slackWebhook');
+  const slackTestResult = document.getElementById('slack-test-result');
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const projectId = '${project.id}';
+  const hasExistingWebhook = ${project.hasSlackWebhook ? 'true' : 'false'};
+  
+  // Enable test button when webhook input has value
+  slackWebhookInput.addEventListener('input', function() {
+    testSlackBtn.disabled = !this.value.trim();
+  });
+  
+  // Enable test button if existing webhook
+  if (hasExistingWebhook) {
+    testSlackBtn.disabled = false;
+  }
+  
+  testSlackBtn.addEventListener('click', async function() {
+    const webhookUrl = slackWebhookInput.value.trim();
+    
+    testSlackBtn.disabled = true;
+    testSlackText.textContent = 'Testing...';
+    testSlackIcon.classList.add('animate-spin');
+    slackTestResult.classList.add('hidden');
+    
+    try {
+      const response = await fetch('/project/' + projectId + '/test-slack', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ webhookUrl: webhookUrl || undefined }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to test webhook');
+      }
+      
+      slackTestResult.textContent = '✓ Test notification sent successfully!';
+      slackTestResult.className = 'text-sm mt-2 text-green-400';
+      slackTestResult.classList.remove('hidden');
+    } catch (error) {
+      slackTestResult.textContent = '✗ ' + error.message;
+      slackTestResult.className = 'text-sm mt-2 text-destructive';
+      slackTestResult.classList.remove('hidden');
+    } finally {
+      testSlackBtn.disabled = !webhookUrl && !hasExistingWebhook;
+      testSlackText.textContent = 'Test';
+      testSlackIcon.classList.remove('animate-spin');
+    }
+  });
+})();
+
+// Show toast from URL params
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const success = urlParams.get('success');
+  const error = urlParams.get('error');
+  
+  if (success) {
+    window.showToast(success, 'success');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  
+  if (error) {
+    window.showToast(error, 'error');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
 })();
 </script>
 `;

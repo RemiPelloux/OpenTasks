@@ -21,6 +21,7 @@ import { Column } from './Column';
 import { TicketCard } from './TicketCard';
 import { NewTicketModal } from './NewTicketModal';
 import { TicketDetailModal } from './TicketDetailModal';
+import { ArchivePanel } from './ArchivePanel';
 import type { Ticket, BoardState, ColumnId } from '../types';
 
 const COLUMNS: { id: ColumnId; title: string; icon: string }[] = [
@@ -37,6 +38,8 @@ export function KanbanBoard() {
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [archivedCount, setArchivedCount] = useState(0);
   const [mobileActiveColumn, setMobileActiveColumn] = useState<ColumnId>('BACKLOG');
 
   // Initialize board state from server-rendered data
@@ -44,8 +47,9 @@ export function KanbanBoard() {
     const stateEl = document.getElementById('board-state');
     if (stateEl?.textContent) {
       try {
-        const state = JSON.parse(stateEl.textContent) as BoardState;
+        const state = JSON.parse(stateEl.textContent) as BoardState & { archivedCount?: number };
         setBoardState(state);
+        setArchivedCount(state.archivedCount || 0);
       } catch (e) {
         console.error('Failed to parse board state:', e);
       }
@@ -249,6 +253,37 @@ export function KanbanBoard() {
     showToast('Ticket created successfully', 'success');
   }, []);
 
+  // Handle ticket restore from archive
+  const handleTicketRestore = useCallback((restoredTicket: Ticket) => {
+    setBoardState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tickets: [...prev.tickets, restoredTicket],
+      };
+    });
+    setArchivedCount((prev) => Math.max(0, prev - 1));
+  }, []);
+
+  // Handle ticket archived (from detail modal update)
+  const handleTicketUpdateWithArchive = useCallback((updatedTicket: Ticket) => {
+    if (updatedTicket.isArchived) {
+      // Remove from board and increment archive count
+      setBoardState((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tickets: prev.tickets.filter((t) => t.id !== updatedTicket.id),
+        };
+      });
+      setArchivedCount((prev) => prev + 1);
+      setSelectedTicket(null);
+    } else {
+      // Normal update
+      handleTicketUpdate(updatedTicket);
+    }
+  }, [handleTicketUpdate]);
+
   if (!boardState) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -259,37 +294,71 @@ export function KanbanBoard() {
 
   return (
     <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="kanban-container">
-          {COLUMNS.map((column) => (
-            <Column
-              key={column.id}
-              id={column.id}
-              title={column.title}
-              icon={column.icon}
-              tickets={boardState.tickets.filter((t) => t.status === column.id)}
-              isActive={mobileActiveColumn === column.id}
-              onTicketClick={handleTicketClick}
-            />
-          ))}
+      {/* Archive Toggle Button */}
+      <div className="board-toolbar">
+        <button
+          className={`archive-tab-btn ${isArchiveOpen ? 'active' : ''}`}
+          onClick={() => setIsArchiveOpen(!isArchiveOpen)}
+          title={isArchiveOpen ? 'Close archive' : 'Open archive'}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+            <path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8" />
+            <rect x="3" y="10" width="18" height="12" rx="2" />
+            <path d="M10 15h4" />
+          </svg>
+          Archive
+          {archivedCount > 0 && (
+            <span className="archive-badge">{archivedCount}</span>
+          )}
+        </button>
+      </div>
+
+      <div className={`board-with-archive ${isArchiveOpen ? 'archive-open' : ''}`}>
+        <div className="board-main">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="kanban-container">
+              {COLUMNS.map((column) => (
+                <Column
+                  key={column.id}
+                  id={column.id}
+                  title={column.title}
+                  icon={column.icon}
+                  tickets={boardState.tickets.filter((t) => t.status === column.id)}
+                  isActive={mobileActiveColumn === column.id}
+                  onTicketClick={handleTicketClick}
+                />
+              ))}
+            </div>
+
+            <DragOverlay>
+              {activeTicket ? (
+                <TicketCard
+                  ticket={activeTicket}
+                  isDragging
+                  onClick={() => {}}
+                />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </div>
 
-        <DragOverlay>
-          {activeTicket ? (
-            <TicketCard
-              ticket={activeTicket}
-              isDragging
-              onClick={() => {}}
+        {/* Archive Panel */}
+        {isArchiveOpen && (
+          <div className="board-archive">
+            <ArchivePanel
+              projectId={boardState.projectId}
+              onRestore={handleTicketRestore}
+              onClose={() => setIsArchiveOpen(false)}
             />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          </div>
+        )}
+      </div>
 
       {/* New Ticket Modal */}
       {isNewTicketOpen && (
@@ -310,7 +379,7 @@ export function KanbanBoard() {
           ticket={selectedTicket}
           projectId={boardState.projectId}
           onClose={() => setSelectedTicket(null)}
-          onUpdate={handleTicketUpdate}
+          onUpdate={handleTicketUpdateWithArchive}
         />
       )}
     </>

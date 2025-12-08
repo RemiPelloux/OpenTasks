@@ -107,6 +107,11 @@ model Project {
   branchPresets String?  @map("branch_presets") @db.Text
   defaultBranch String?  @map("default_branch") @default("main")
   
+  // Slack notifications - encrypted webhook URL and enabled events
+  // Events: ["queued", "processing", "completed", "error", "validated"]
+  slackWebhookEncrypted String?  @map("slack_webhook_encrypted") @db.Text
+  slackEvents           String?  @map("slack_events") @db.Text // JSON array of enabled events
+  
   isArchived Boolean  @default(false) @map("is_archived")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -162,6 +167,10 @@ model Ticket {
   aiModel     String?      @map("ai_model") // Model used for this ticket (e.g., "claude-4-sonnet-thinking")
   agentBranch String?      @map("agent_branch") // Branch created by the agent
   agentStatus String?      @map("agent_status") // Current status from Cursor API
+  
+  // Archive
+  isArchived  Boolean      @default(false) @map("is_archived")
+  archivedAt  DateTime?    @map("archived_at")
   
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")

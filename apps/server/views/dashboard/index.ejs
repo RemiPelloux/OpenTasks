@@ -81,5 +81,28 @@ if (projects.length === 0) {
 }
 
 bodyContent += `</div>`;
+
+// Script to show toast from URL params
+const scriptsContent = `
+<script>
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const success = urlParams.get('success');
+  const error = urlParams.get('error');
+  
+  if (success) {
+    window.showToast(success, 'success');
+    // Clean up URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  
+  if (error) {
+    window.showToast(error, 'error');
+    // Clean up URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+})();
+</script>
+`;
 %>
-<%- include('../layout', { body: bodyContent, title, csrfToken, isAuthenticated: true, user, currentPath }) %>
+<%- include('../layout', { body: bodyContent, title, csrfToken, isAuthenticated: true, user, currentPath, scripts: scriptsContent }) %>

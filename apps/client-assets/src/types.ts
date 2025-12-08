@@ -46,6 +46,8 @@ export interface Ticket {
   createdBy?: User;
   createdById: string;
   projectId: string;
+  isArchived?: boolean;
+  archivedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

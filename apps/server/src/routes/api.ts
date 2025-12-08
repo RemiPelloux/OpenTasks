@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { prisma, decrypt } from '@opentasks/database';
 import { requireAuth } from '../middleware/auth.js';
+import { notifySlack } from '../services/slack.js';
 
 export const apiRoutes = Router();
 
@@ -49,6 +50,11 @@ apiRoutes.post('/tickets/:ticketId/validate', async (req, res) => {
       data: { status: 'COMPLETED', completedAt: new Date() },
     });
 
+    // Send Slack notification
+    notifySlack(ticketId, 'validated').catch((err) => {
+      console.error('[Slack] Failed to send validated notification:', err);
+    });
+
     res.json({ 
       message: 'Ticket validated successfully',
       ticket: updatedTicket,
@@ -56,6 +62,140 @@ apiRoutes.post('/tickets/:ticketId/validate', async (req, res) => {
   } catch (error) {
     console.error('Validate ticket error:', error);
     res.status(500).json({ error: 'Failed to validate ticket' });
+  }
+});
+
+/**
+ * Archive a ticket
+ * POST /api/tickets/:ticketId/archive
+ */
+apiRoutes.post('/tickets/:ticketId/archive', async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    // Find the ticket
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+
+    // Archive the ticket
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        isArchived: true,
+        archivedAt: new Date(),
+      },
+      include: {
+        assignee: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+        createdBy: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    res.json({ 
+      message: 'Ticket archived successfully',
+      ticket: updatedTicket,
+    });
+  } catch (error) {
+    console.error('Archive ticket error:', error);
+    res.status(500).json({ error: 'Failed to archive ticket' });
+  }
+});
+
+/**
+ * Restore a ticket from archive
+ * POST /api/tickets/:ticketId/restore
+ */
+apiRoutes.post('/tickets/:ticketId/restore', async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    // Find the ticket
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+
+    // Restore the ticket
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        isArchived: false,
+        archivedAt: null,
+      },
+      include: {
+        assignee: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+        createdBy: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    res.json({ 
+      message: 'Ticket restored successfully',
+      ticket: updatedTicket,
+    });
+  } catch (error) {
+    console.error('Restore ticket error:', error);
+    res.status(500).json({ error: 'Failed to restore ticket' });
+  }
+});
+
+/**
+ * Get archived tickets for a project
+ * GET /api/projects/:projectId/archived
+ */
+apiRoutes.get('/projects/:projectId/archived', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    // Check project access
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId,
+        userId: req.session.user!.id,
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    const archivedTickets = await prisma.ticket.findMany({
+      where: { 
+        projectId,
+        isArchived: true,
+      },
+      include: {
+        assignee: {
+          select: { id: true, name: true, email: true, avatarUrl: true },
+        },
+        createdBy: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { archivedAt: 'desc' },
+    });
+
+    res.json(archivedTickets);
+  } catch (error) {
+    console.error('Get archived tickets error:', error);
+    res.status(500).json({ error: 'Failed to get archived tickets' });
   }
 });
 

@@ -35,11 +35,12 @@ projectRoutes.get('/:id/board', async (req, res) => {
       return;
     }
 
-    // Get project with tickets
+    // Get project with tickets (excluding archived)
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
         tickets: {
+          where: { isArchived: false },
           include: {
             assignee: {
               select: { id: true, name: true, email: true, avatarUrl: true },
@@ -58,6 +59,11 @@ projectRoutes.get('/:id/board', async (req, res) => {
           },
         },
       },
+    });
+
+    // Get archived ticket count
+    const archivedCount = await prisma.ticket.count({
+      where: { projectId: id, isArchived: true },
     });
 
     if (!project) {
@@ -84,6 +90,7 @@ projectRoutes.get('/:id/board', async (req, res) => {
       members: project.members.map((m) => m.user),
       branchPresets,
       defaultBranch: project.defaultBranch || 'main',
+      archivedCount,
     });
 
     res.render('project/board', {
@@ -96,6 +103,7 @@ projectRoutes.get('/:id/board', async (req, res) => {
         githubRepoUrl: project.githubRepoUrl,
       },
       boardState,
+      archivedCount,
     });
   } catch (error) {
     console.error('Project board error:', error);
@@ -155,12 +163,22 @@ projectRoutes.get('/:id/settings', async (req, res) => {
       return;
     }
 
+    // Parse Slack events from JSON
+    let slackEvents: string[] = [];
+    try {
+      slackEvents = project.slackEvents ? JSON.parse(project.slackEvents) : [];
+    } catch {
+      // Ignore parse errors
+    }
+
     res.render('project/settings', {
       title: `${project.name} - Settings`,
       currentPath: `/project/${id}/settings`,
       project: {
         ...project,
         hasApiKey: !!project.cursorApiKeyEncrypted,
+        hasSlackWebhook: !!project.slackWebhookEncrypted,
+        slackEvents,
       },
       membership,
     });
@@ -194,7 +212,8 @@ projectRoutes.post('/:id/settings', async (req, res) => {
       return;
     }
 
-    const { name, description, githubRepoUrl, defaultBranch, branchPresetsText } = req.body;
+    const { name, description, githubRepoUrl, defaultBranch, branchPresetsText, slackWebhook } = req.body;
+    const slackEventsRaw = req.body['slackEvents[]'];
 
     // Handle API key update (only if provided)
     let cursorApiKeyEncrypted: string | undefined;
@@ -202,6 +221,23 @@ projectRoutes.post('/:id/settings', async (req, res) => {
     if (req.body.cursorApiKey) {
       const { encrypt } = await import('@opentasks/database');
       cursorApiKeyEncrypted = encrypt(req.body.cursorApiKey);
+    }
+
+    // Handle Slack webhook update (only if provided)
+    let slackWebhookEncrypted: string | undefined;
+    if (slackWebhook) {
+      const { encrypt } = await import('@opentasks/database');
+      slackWebhookEncrypted = encrypt(slackWebhook);
+    }
+
+    // Handle Slack events - can be string, array, or undefined
+    let slackEvents: string | null = null;
+    if (slackEventsRaw) {
+      const eventsArray = Array.isArray(slackEventsRaw) ? slackEventsRaw : [slackEventsRaw];
+      slackEvents = JSON.stringify(eventsArray);
+    } else {
+      // No events selected, store empty array
+      slackEvents = JSON.stringify([]);
     }
 
     // Parse branch presets from text format (name=branch per line)
@@ -230,7 +266,9 @@ projectRoutes.post('/:id/settings', async (req, res) => {
         githubRepoUrl: githubRepoUrl?.trim() || null,
         defaultBranch: defaultBranch?.trim() || 'main',
         branchPresets,
+        slackEvents,
         ...(cursorApiKeyEncrypted && { cursorApiKeyEncrypted }),
+        ...(slackWebhookEncrypted && { slackWebhookEncrypted }),
       },
     });
 
@@ -509,11 +547,12 @@ projectRoutes.get('/:id/board/state', async (req, res) => {
       return;
     }
 
-    // Get project with tickets
+    // Get project with tickets (excluding archived)
     const project = await prisma.project.findUnique({
       where: { id },
       include: {
         tickets: {
+          where: { isArchived: false },
           include: {
             assignee: {
               select: { id: true, name: true, email: true, avatarUrl: true },
@@ -532,6 +571,11 @@ projectRoutes.get('/:id/board/state', async (req, res) => {
           },
         },
       },
+    });
+
+    // Get archived ticket count
+    const archivedCount = await prisma.ticket.count({
+      where: { projectId: id, isArchived: true },
     });
 
     if (!project) {
@@ -554,10 +598,66 @@ projectRoutes.get('/:id/board/state', async (req, res) => {
       members: project.members.map((m) => ({ ...m.user, role: m.role })),
       branchPresets,
       defaultBranch: project.defaultBranch || 'main',
+      archivedCount,
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Get board state error:', error);
     res.status(500).json({ error: 'Failed to get board state' });
+  }
+});
+
+/**
+ * API: Test Slack webhook
+ */
+projectRoutes.post('/:id/test-slack', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { webhookUrl } = req.body;
+
+    // Check project access (admin or owner only)
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: id,
+        userId: req.session.user!.id,
+        role: { in: ['OWNER', 'ADMIN'] },
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    // Get the webhook URL - either from request or from project
+    let targetWebhook = webhookUrl;
+    
+    if (!targetWebhook) {
+      const project = await prisma.project.findUnique({
+        where: { id },
+        select: { slackWebhookEncrypted: true },
+      });
+
+      if (!project?.slackWebhookEncrypted) {
+        res.status(400).json({ error: 'No webhook URL configured' });
+        return;
+      }
+
+      const { decrypt } = await import('@opentasks/database');
+      targetWebhook = decrypt(project.slackWebhookEncrypted);
+    }
+
+    // Send test notification
+    const { testSlackWebhook } = await import('../services/slack.js');
+    const result = await testSlackWebhook(targetWebhook);
+
+    if (result.success) {
+      res.json({ success: true, message: 'Test notification sent!' });
+    } else {
+      res.status(400).json({ error: result.error || 'Failed to send test notification' });
+    }
+  } catch (error) {
+    console.error('Test Slack webhook error:', error);
+    res.status(500).json({ error: 'Failed to test webhook' });
   }
 });
