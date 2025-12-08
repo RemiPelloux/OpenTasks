@@ -61,6 +61,12 @@ export function KanbanBoard() {
       newTicketBtn.addEventListener('click', () => setIsNewTicketOpen(true));
     }
 
+    // Archive button handler
+    const archiveBtn = document.getElementById('archive-btn');
+    if (archiveBtn) {
+      archiveBtn.addEventListener('click', () => setIsArchiveOpen(prev => !prev));
+    }
+
     // Mobile tab handlers
     document.querySelectorAll('.tab-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -284,6 +290,25 @@ export function KanbanBoard() {
     }
   }, [handleTicketUpdate]);
 
+  // Update archive count badge in header (must be before conditional return!)
+  useEffect(() => {
+    const archiveCountEl = document.getElementById('archive-count');
+    if (archiveCountEl) {
+      archiveCountEl.textContent = String(archivedCount);
+      archiveCountEl.classList.toggle('hidden', archivedCount === 0);
+    }
+    
+    // Update archive button active state
+    const archiveBtn = document.getElementById('archive-btn');
+    if (archiveBtn) {
+      if (isArchiveOpen) {
+        archiveBtn.classList.add('bg-accent', 'text-accent-foreground');
+      } else {
+        archiveBtn.classList.remove('bg-accent', 'text-accent-foreground');
+      }
+    }
+  }, [archivedCount, isArchiveOpen]);
+
   if (!boardState) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -294,25 +319,6 @@ export function KanbanBoard() {
 
   return (
     <>
-      {/* Archive Toggle Button */}
-      <div className="board-toolbar">
-        <button
-          className={`archive-tab-btn ${isArchiveOpen ? 'active' : ''}`}
-          onClick={() => setIsArchiveOpen(!isArchiveOpen)}
-          title={isArchiveOpen ? 'Close archive' : 'Open archive'}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-            <path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8" />
-            <rect x="3" y="10" width="18" height="12" rx="2" />
-            <path d="M10 15h4" />
-          </svg>
-          Archive
-          {archivedCount > 0 && (
-            <span className="archive-badge">{archivedCount}</span>
-          )}
-        </button>
-      </div>
-
       <div className={`board-with-archive ${isArchiveOpen ? 'archive-open' : ''}`}>
         <div className="board-main">
           <DndContext

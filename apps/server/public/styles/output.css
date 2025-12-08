@@ -805,6 +805,10 @@ body {
   margin-top: 2rem;
 }
 
+.ml-1\.5 {
+  margin-left: 0.375rem;
+}
+
 .line-clamp-2 {
   overflow: hidden;
   display: -webkit-box;
@@ -990,6 +994,10 @@ body {
 
 .min-w-0 {
   min-width: 0px;
+}
+
+.min-w-\[1\.25rem\] {
+  min-width: 1.25rem;
 }
 
 .max-w-2xl {
@@ -1416,6 +1424,10 @@ body {
   background-color: hsl(var(--status-success) / 0.1);
 }
 
+.bg-accent {
+  background-color: hsl(var(--accent));
+}
+
 .object-cover {
   -o-object-fit: cover;
      object-fit: cover;
@@ -1517,6 +1529,11 @@ body {
 .py-8 {
   padding-top: 2rem;
   padding-bottom: 2rem;
+}
+
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
 }
 
 .pb-8 {
@@ -1732,6 +1749,10 @@ body {
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
 
+.text-accent-foreground {
+  color: hsl(var(--accent-foreground));
+}
+
 .underline {
   text-decoration-line: underline;
 }
@@ -1749,12 +1770,12 @@ body {
   opacity: 0.25;
 }
 
-.opacity-70 {
-  opacity: 0.7;
-}
-
 .opacity-50 {
   opacity: 0.5;
+}
+
+.opacity-70 {
+  opacity: 0.7;
 }
 
 .shadow-lg {
