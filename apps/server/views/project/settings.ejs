@@ -327,11 +327,13 @@ bodyContent += `
             <p class="font-medium">Delete Project</p>
             <p class="text-sm text-muted-foreground">Permanently delete this project and all ${project._count.tickets} tickets</p>
           </div>
-          <form action="/project/${project.id}/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete the project \\'${project.name}\\'?\\n\\nThis will permanently delete all ${project._count.tickets} tickets and cannot be undone.')">
-            <input type="hidden" name="_csrf" value="${csrfToken}">
-            <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-3">
+          <div id="delete-project-container">
+            <button type="button" id="delete-project-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-3">
               Delete Project
             </button>
+          </div>
+          <form id="delete-project-form" action="/project/${project.id}/delete" method="POST" style="display:none;">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
           </form>
         </div>
       </div>
@@ -704,19 +706,43 @@ bodyContent += `
             const data = await response.json();
             throw new Error(data.error || 'Failed to update role');
           }
+          
+          window.showToast('Role updated successfully', 'success');
         } catch (error) {
-          alert(error.message);
+          window.showToast(error.message, 'error');
           window.location.reload();
         }
       });
     });
     
     container.querySelectorAll('.remove-member-btn').forEach(btn => {
+      // Track if we're in confirm mode
+      let isConfirming = false;
+      
       btn.addEventListener('click', async function() {
         const userId = this.dataset.userId;
         const name = this.dataset.name;
         
-        if (!confirm('Remove ' + name + ' from this project?')) return;
+        if (!isConfirming) {
+          // Show confirmation
+          isConfirming = true;
+          const originalText = this.innerHTML;
+          this.innerHTML = 'Confirm?';
+          this.classList.add('confirming');
+          
+          // Reset after 3 seconds if not clicked
+          setTimeout(() => {
+            if (isConfirming) {
+              isConfirming = false;
+              this.innerHTML = originalText;
+              this.classList.remove('confirming');
+            }
+          }, 3000);
+          return;
+        }
+        
+        // Perform removal
+        isConfirming = false;
         
         try {
           const response = await fetch('/project/' + projectId + '/members/' + userId + '/remove', {
@@ -739,8 +765,10 @@ bodyContent += `
           const currentCount = parseInt(memberCount.textContent, 10);
           memberCount.textContent = currentCount - 1;
           
+          window.showToast(name + ' removed from project', 'success');
+          
         } catch (error) {
-          alert(error.message);
+          window.showToast(error.message, 'error');
         }
       });
     });
@@ -808,6 +836,46 @@ bodyContent += `
       testSlackIcon.classList.remove('animate-spin');
     }
   });
+})();
+
+// Delete Project Handler
+(function() {
+  const deleteBtn = document.getElementById('delete-project-btn');
+  const deleteContainer = document.getElementById('delete-project-container');
+  const deleteForm = document.getElementById('delete-project-form');
+  
+  if (deleteBtn && deleteContainer && deleteForm) {
+    let isConfirming = false;
+    
+    deleteBtn.addEventListener('click', function() {
+      if (!isConfirming) {
+        // Show confirmation UI
+        isConfirming = true;
+        deleteContainer.innerHTML = \`
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-muted-foreground">Are you sure?</span>
+            <button type="button" id="delete-confirm" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3">
+              Yes, Delete
+            </button>
+            <button type="button" id="delete-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-8 px-3">
+              Cancel
+            </button>
+          </div>
+        \`;
+        
+        document.getElementById('delete-confirm').addEventListener('click', function() {
+          deleteForm.submit();
+        });
+        
+        document.getElementById('delete-cancel').addEventListener('click', function() {
+          isConfirming = false;
+          deleteContainer.innerHTML = '<button type="button" id="delete-project-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 px-3">Delete Project</button>';
+          // Re-attach the event listener
+          document.getElementById('delete-project-btn').addEventListener('click', arguments.callee.caller);
+        });
+      }
+    });
+  }
 })();
 
 // Show toast from URL params

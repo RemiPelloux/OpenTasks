@@ -45,6 +45,7 @@ export function TicketDetailModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [localAgentStatus, setLocalAgentStatus] = useState<AgentStatus | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'delete' | 'archive' | null>(null);
 
   // Handle agent status changes from live polling
   const handleAgentStatusChange = useCallback((newStatus: AgentStatus) => {
@@ -97,10 +98,6 @@ export function TicketDetailModal({
   }, [projectId, ticket.id, title, description, priority, status, onUpdate]);
 
   const handleDelete = useCallback(async () => {
-    if (!confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -125,14 +122,11 @@ export function TicketDetailModal({
       showToast(errorMsg, 'error');
     } finally {
       setIsSubmitting(false);
+      setConfirmAction(null);
     }
   }, [projectId, ticket, onUpdate, onClose]);
 
   const handleArchive = useCallback(async () => {
-    if (!confirm('Archive this ticket? It will be moved to the Archive tab.')) {
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -157,6 +151,7 @@ export function TicketDetailModal({
       showToast(errorMsg, 'error');
     } finally {
       setIsSubmitting(false);
+      setConfirmAction(null);
     }
   }, [ticket, onUpdate, onClose]);
 
@@ -377,6 +372,38 @@ export function TicketDetailModal({
           </div>
         </div>
 
+        {/* Confirmation Dialog */}
+        {confirmAction && (
+          <div className="confirm-dialog">
+            <div className="confirm-dialog-content">
+              <p className="confirm-dialog-message">
+                {confirmAction === 'delete' 
+                  ? `Are you sure you want to delete "${ticket.title}"? This action cannot be undone.`
+                  : `Archive "${ticket.title}"? It will be moved to the Archive page.`
+                }
+              </p>
+              <div className="confirm-dialog-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setConfirmAction(null)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${confirmAction === 'delete' ? 'btn-destructive' : 'btn-primary'}`}
+                  onClick={confirmAction === 'delete' ? handleDelete : handleArchive}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Processing...' : confirmAction === 'delete' ? 'Delete' : 'Archive'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="modal-actions">
           {isEditing ? (
@@ -384,8 +411,8 @@ export function TicketDetailModal({
               <button
                 type="button"
                 className="btn btn-destructive"
-                onClick={handleDelete}
-                disabled={isSubmitting}
+                onClick={() => setConfirmAction('delete')}
+                disabled={isSubmitting || !!confirmAction}
                 title="Permanently delete this ticket"
               >
                 Delete
@@ -393,8 +420,8 @@ export function TicketDetailModal({
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={handleArchive}
-                disabled={isSubmitting}
+                onClick={() => setConfirmAction('archive')}
+                disabled={isSubmitting || !!confirmAction}
                 title="Archive this ticket"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 mr-1">

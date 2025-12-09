@@ -60,15 +60,13 @@ export function AgentStatusPanel({
   const [isValidating, setIsValidating] = useState(false);
   const [followupText, setFollowupText] = useState('');
   const [isSendingFollowup, setIsSendingFollowup] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'validate' | 'stop' | null>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Validate handler - mark ticket as Done
   const handleValidate = useCallback(async () => {
     if (isValidating) return;
-    
-    const confirmed = window.confirm('Mark this ticket as Done? This confirms the AI work is complete and accepted.');
-    if (!confirmed) return;
 
     setIsValidating(true);
     try {
@@ -86,6 +84,8 @@ export function AgentStatusPanel({
         throw new Error(data.error || 'Failed to validate ticket');
       }
 
+      showToast('Ticket validated and marked as Done!', 'success');
+
       // Stop polling
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
@@ -98,18 +98,18 @@ export function AgentStatusPanel({
       }
     } catch (err) {
       console.error('Validate error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to validate ticket');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to validate ticket';
+      setError(errorMsg);
+      showToast(errorMsg, 'error');
     } finally {
       setIsValidating(false);
+      setConfirmAction(null);
     }
   }, [ticketId, isValidating, onValidate]);
 
   // Emergency stop handler
   const handleStop = useCallback(async () => {
     if (isStopping) return;
-    
-    const confirmed = window.confirm('Are you sure you want to stop the AI agent? This cannot be undone.');
-    if (!confirmed) return;
 
     setIsStopping(true);
     try {
@@ -126,6 +126,8 @@ export function AgentStatusPanel({
         const data = await response.json();
         throw new Error(data.error || 'Failed to stop agent');
       }
+      
+      showToast('AI agent stopped', 'warning');
 
       // Update local status
       setStatus(prev => prev ? { ...prev, status: 'CANCELLED' } : null);
@@ -145,9 +147,12 @@ export function AgentStatusPanel({
       }
     } catch (err) {
       console.error('Stop agent error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to stop agent');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to stop agent';
+      setError(errorMsg);
+      showToast(errorMsg, 'error');
     } finally {
       setIsStopping(false);
+      setConfirmAction(null);
     }
   }, [agentId, isStopping, onStatusChange, onStop]);
 
@@ -326,25 +331,47 @@ export function AgentStatusPanel({
         {/* Still allow validation even if agent is not found */}
         {canStillValidate && (
           <div className="agent-review-actions" style={{ padding: '1rem' }}>
-            <button
-              className="validate-btn"
-              onClick={handleValidate}
-              disabled={isValidating}
-            >
-              {isValidating ? (
-                <>
-                  <span className="agent-spinner-small" />
-                  Validating...
-                </>
-              ) : (
-                <>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  Validate & Complete
-                </>
-              )}
-            </button>
+            {confirmAction === 'validate' ? (
+              <div className="validate-confirm">
+                <span className="text-sm">Mark as Done? This confirms the work is complete.</span>
+                <div className="validate-confirm-btns">
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setConfirmAction(null)}
+                    disabled={isValidating}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleValidate}
+                    disabled={isValidating}
+                  >
+                    {isValidating ? 'Validating...' : 'Confirm'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="validate-btn"
+                onClick={() => setConfirmAction('validate')}
+                disabled={isValidating}
+              >
+                {isValidating ? (
+                  <>
+                    <span className="agent-spinner-small" />
+                    Validating...
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    Validate & Complete
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -388,24 +415,44 @@ export function AgentStatusPanel({
         <div className="agent-status-actions">
           {/* Emergency Stop Button */}
           {(currentStatus === 'RUNNING' || currentStatus === 'QUEUED') && (
-            <button
-              className="agent-stop-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStop();
-              }}
-              disabled={isStopping}
-              title="Emergency Stop - Stop the AI agent immediately"
-            >
-              {isStopping ? (
-                <span className="agent-spinner-small" />
-              ) : (
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
-                  <rect x="6" y="6" width="12" height="12" rx="1" />
-                </svg>
-              )}
-              <span>{isStopping ? 'Stopping...' : 'Stop'}</span>
-            </button>
+            confirmAction === 'stop' ? (
+              <div className="agent-confirm-inline" onClick={(e) => e.stopPropagation()}>
+                <span className="text-xs text-muted-foreground">Stop agent?</span>
+                <button
+                  className="agent-confirm-btn yes"
+                  onClick={handleStop}
+                  disabled={isStopping}
+                >
+                  {isStopping ? '...' : 'Yes'}
+                </button>
+                <button
+                  className="agent-confirm-btn no"
+                  onClick={() => setConfirmAction(null)}
+                  disabled={isStopping}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                className="agent-stop-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirmAction('stop');
+                }}
+                disabled={isStopping}
+                title="Emergency Stop - Stop the AI agent immediately"
+              >
+                {isStopping ? (
+                  <span className="agent-spinner-small" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                    <rect x="6" y="6" width="12" height="12" rx="1" />
+                  </svg>
+                )}
+                <span>{isStopping ? 'Stopping...' : 'Stop'}</span>
+              </button>
+            )
           )}
           {status?.target?.url && (
             <a 
@@ -502,25 +549,47 @@ export function AgentStatusPanel({
           {canSendFollowup && (
             <div className="agent-review-actions">
               {/* Validate Button */}
-              <button
-                className="validate-btn"
-                onClick={handleValidate}
-                disabled={isValidating}
-              >
-                {isValidating ? (
-                  <>
-                    <span className="agent-spinner-small" />
-                    Validating...
-                  </>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                    Validate & Complete
-                  </>
-                )}
-              </button>
+              {confirmAction === 'validate' ? (
+                <div className="validate-confirm">
+                  <span className="text-sm">Mark as Done? This confirms the work is complete.</span>
+                  <div className="validate-confirm-btns">
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setConfirmAction(null)}
+                      disabled={isValidating}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleValidate}
+                      disabled={isValidating}
+                    >
+                      {isValidating ? 'Validating...' : 'Confirm'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  className="validate-btn"
+                  onClick={() => setConfirmAction('validate')}
+                  disabled={isValidating}
+                >
+                  {isValidating ? (
+                    <>
+                      <span className="agent-spinner-small" />
+                      Validating...
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                      Validate & Complete
+                    </>
+                  )}
+                </button>
+              )}
 
               {/* Follow-up Section */}
               <div className="agent-followup">

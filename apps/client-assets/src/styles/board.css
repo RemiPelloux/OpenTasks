@@ -387,6 +387,93 @@
   color: hsl(var(--muted-foreground));
 }
 
+/* Ticket Action Buttons Row */
+.ticket-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.ticket-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ticket-action-btn:hover {
+  background: hsl(var(--muted));
+}
+
+.ticket-action-btn.delete:hover {
+  background: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+  border-color: hsl(var(--destructive) / 0.3);
+}
+
+.ticket-action-btn.archive {
+  padding: 0.375rem 0.625rem;
+}
+
+.ticket-action-btn.archive:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  border-color: hsl(var(--accent-foreground) / 0.2);
+}
+
+/* Delete Confirmation Modal */
+.delete-confirm-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  padding: 1.5rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 20px 40px hsl(0 0% 0% / 0.4);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.delete-confirm-modal h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.delete-confirm-modal p {
+  margin: 0 0 0.5rem;
+  color: hsl(var(--foreground));
+}
+
+.delete-confirm-modal .text-muted-foreground {
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 1.25rem;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
 /* Success glow animation */
 .ticket-card.success-glow {
   animation: success-glow 0.6s ease-out;
@@ -1811,6 +1898,105 @@ textarea.form-input {
 .validate-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Validate Confirmation */
+.validate-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: hsl(var(--muted) / 0.5);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.validate-confirm-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.validate-confirm-btns .btn-sm {
+  height: 2rem;
+  padding: 0 1rem;
+  font-size: 0.8125rem;
+}
+
+/* Agent Inline Confirmation */
+.agent-confirm-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: hsl(var(--muted));
+  border-radius: var(--radius);
+}
+
+.agent-confirm-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.agent-confirm-btn.yes {
+  background: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+
+.agent-confirm-btn.yes:hover {
+  background: hsl(var(--destructive) / 0.9);
+}
+
+.agent-confirm-btn.no {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+.agent-confirm-btn.no:hover {
+  background: hsl(var(--secondary) / 0.8);
+}
+
+/* Confirm Dialog in Modal */
+.confirm-dialog {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--background) / 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  border-radius: var(--radius);
+}
+
+.confirm-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px hsl(0 0% 0% / 0.3);
+  max-width: 320px;
+  text-align: center;
+}
+
+.confirm-dialog-message {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 /* Terminal scrollbar */

@@ -115,6 +115,75 @@ projectRoutes.get('/:id/board', async (req, res) => {
 });
 
 /**
+ * Project Archive Page
+ */
+projectRoutes.get('/:id/archive', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check project access
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: id,
+        userId: req.session.user!.id,
+      },
+    });
+
+    if (!membership) {
+      res.status(403).render('error', {
+        title: 'Access Denied',
+        message: 'You do not have access to this project.',
+      });
+      return;
+    }
+
+    // Get project with archived tickets
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (!project) {
+      res.status(404).render('error', {
+        title: 'Not Found',
+        message: 'Project not found.',
+      });
+      return;
+    }
+
+    // Get archived tickets sorted by archivedAt desc
+    const tickets = await prisma.ticket.findMany({
+      where: {
+        projectId: id,
+        isArchived: true,
+      },
+      include: {
+        assignee: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: { archivedAt: 'desc' },
+    });
+
+    res.render('project/archive', {
+      title: `${project.name} - Archive`,
+      currentPath: `/project/${id}/archive`,
+      project,
+      tickets,
+    });
+  } catch (error) {
+    console.error('Archive page error:', error);
+    res.status(500).render('error', {
+      title: 'Error',
+      message: 'Failed to load archive.',
+    });
+  }
+});
+
+/**
  * Project Settings Page
  */
 projectRoutes.get('/:id/settings', async (req, res) => {

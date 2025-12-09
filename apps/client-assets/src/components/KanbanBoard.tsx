@@ -21,7 +21,6 @@ import { Column } from './Column';
 import { TicketCard } from './TicketCard';
 import { NewTicketModal } from './NewTicketModal';
 import { TicketDetailModal } from './TicketDetailModal';
-import { ArchivePanel } from './ArchivePanel';
 import type { Ticket, BoardState, ColumnId } from '../types';
 
 const COLUMNS: { id: ColumnId; title: string; icon: string }[] = [
@@ -38,7 +37,6 @@ export function KanbanBoard() {
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
-  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [archivedCount, setArchivedCount] = useState(0);
   const [mobileActiveColumn, setMobileActiveColumn] = useState<ColumnId>('BACKLOG');
 
@@ -59,12 +57,6 @@ export function KanbanBoard() {
     const newTicketBtn = document.getElementById('new-ticket-btn');
     if (newTicketBtn) {
       newTicketBtn.addEventListener('click', () => setIsNewTicketOpen(true));
-    }
-
-    // Archive button handler
-    const archiveBtn = document.getElementById('archive-btn');
-    if (archiveBtn) {
-      archiveBtn.addEventListener('click', () => setIsArchiveOpen(prev => !prev));
     }
 
     // Mobile tab handlers
@@ -90,13 +82,13 @@ export function KanbanBoard() {
     };
   }, []);
 
-  // Real-time sync: Poll for updates every 5 seconds
+  // Real-time sync: Poll for updates every 2 seconds
   useEffect(() => {
     if (!boardState?.projectId) return;
 
     const pollInterval = setInterval(async () => {
-      // Don't poll if user is actively dragging or has modals open
-      if (activeTicket || selectedTicket || isNewTicketOpen) return;
+      // Don't poll if user is actively dragging
+      if (activeTicket) return;
 
       try {
         const response = await fetch(`/project/${boardState.projectId}/board/state`);
@@ -104,30 +96,42 @@ export function KanbanBoard() {
 
         const newState = await response.json() as BoardState;
         
-        // Only update if there are actual changes (compare ticket count and statuses)
+        // Track specific changes for better UX feedback
+        const statusChanges: string[] = [];
+        
+        newState.tickets.forEach((newTicket) => {
+          const existingTicket = boardState.tickets.find(t => t.id === newTicket.id);
+          if (existingTicket && existingTicket.status !== newTicket.status) {
+            statusChanges.push(`#${newTicket.id.slice(-4)} → ${newTicket.status.replace('_', ' ')}`);
+          }
+        });
+        
         const hasChanges = 
           newState.tickets.length !== boardState.tickets.length ||
+          statusChanges.length > 0 ||
           newState.tickets.some((newTicket) => {
             const existingTicket = boardState.tickets.find(t => t.id === newTicket.id);
             return !existingTicket || 
-              existingTicket.status !== newTicket.status ||
               existingTicket.title !== newTicket.title ||
+              existingTicket.prLink !== newTicket.prLink ||
               existingTicket.assigneeId !== newTicket.assigneeId;
-          }) ||
-          newState.members?.length !== boardState.members?.length;
+          });
 
         if (hasChanges) {
           setBoardState(newState);
-          showToast('Board updated', 'success');
+          // Only show toast for meaningful status changes
+          if (statusChanges.length > 0) {
+            showToast(`Ticket updated: ${statusChanges[0]}`, 'success');
+          }
         }
       } catch (error) {
         // Silently fail - don't disrupt user experience
         console.debug('Sync poll failed:', error);
       }
-    }, 5000); // Poll every 5 seconds
+    }, 2000); // Poll every 2 seconds for faster updates
 
     return () => clearInterval(pollInterval);
-  }, [boardState?.projectId, boardState?.tickets, activeTicket, selectedTicket, isNewTicketOpen]);
+  }, [boardState?.projectId, boardState?.tickets, activeTicket]);
 
   // DnD sensors configuration
   const sensors = useSensors(
@@ -259,17 +263,77 @@ export function KanbanBoard() {
     showToast('Ticket created successfully', 'success');
   }, []);
 
-  // Handle ticket restore from archive
-  const handleTicketRestore = useCallback((restoredTicket: Ticket) => {
-    setBoardState((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        tickets: [...prev.tickets, restoredTicket],
-      };
-    });
-    setArchivedCount((prev) => Math.max(0, prev - 1));
+  // Quick archive from Done column
+  const handleQuickArchive = useCallback(async (ticket: Ticket) => {
+    if (!boardState) return;
+    
+    try {
+      const response = await fetch(`/api/tickets/${ticket.id}/archive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCsrfToken(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to archive ticket');
+      }
+
+      // Remove from board
+      setBoardState((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tickets: prev.tickets.filter((t) => t.id !== ticket.id),
+        };
+      });
+      setArchivedCount((prev) => prev + 1);
+      showToast(`"${ticket.title}" archived`, 'success');
+    } catch (error) {
+      console.error('Failed to archive ticket:', error);
+      showToast('Failed to archive ticket', 'error');
+    }
+  }, [boardState]);
+
+  // Quick delete from board (with confirmation state)
+  const [deleteConfirmTicket, setDeleteConfirmTicket] = useState<Ticket | null>(null);
+  
+  const handleQuickDelete = useCallback((ticket: Ticket) => {
+    setDeleteConfirmTicket(ticket);
   }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!boardState || !deleteConfirmTicket) return;
+    
+    try {
+      const response = await fetch(`/api/tickets/${boardState.projectId}/${deleteConfirmTicket.id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRF-Token': getCsrfToken(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete ticket');
+      }
+
+      // Remove from board
+      setBoardState((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tickets: prev.tickets.filter((t) => t.id !== deleteConfirmTicket.id),
+        };
+      });
+      showToast(`"${deleteConfirmTicket.title}" deleted`, 'success');
+    } catch (error) {
+      console.error('Failed to delete ticket:', error);
+      showToast('Failed to delete ticket', 'error');
+    } finally {
+      setDeleteConfirmTicket(null);
+    }
+  }, [boardState, deleteConfirmTicket]);
 
   // Handle ticket archived (from detail modal update)
   const handleTicketUpdateWithArchive = useCallback((updatedTicket: Ticket) => {
@@ -297,17 +361,7 @@ export function KanbanBoard() {
       archiveCountEl.textContent = String(archivedCount);
       archiveCountEl.classList.toggle('hidden', archivedCount === 0);
     }
-    
-    // Update archive button active state
-    const archiveBtn = document.getElementById('archive-btn');
-    if (archiveBtn) {
-      if (isArchiveOpen) {
-        archiveBtn.classList.add('bg-accent', 'text-accent-foreground');
-      } else {
-        archiveBtn.classList.remove('bg-accent', 'text-accent-foreground');
-      }
-    }
-  }, [archivedCount, isArchiveOpen]);
+  }, [archivedCount]);
 
   if (!boardState) {
     return (
@@ -319,52 +373,58 @@ export function KanbanBoard() {
 
   return (
     <>
-      <div className={`board-with-archive ${isArchiveOpen ? 'archive-open' : ''}`}>
-        <div className="board-main">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="kanban-container">
-              {COLUMNS.map((column) => (
-                <Column
-                  key={column.id}
-                  id={column.id}
-                  title={column.title}
-                  icon={column.icon}
-                  tickets={boardState.tickets.filter((t) => t.status === column.id)}
-                  isActive={mobileActiveColumn === column.id}
-                  onTicketClick={handleTicketClick}
-                />
-              ))}
-            </div>
-
-            <DragOverlay>
-              {activeTicket ? (
-                <TicketCard
-                  ticket={activeTicket}
-                  isDragging
-                  onClick={() => {}}
-                />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="kanban-container">
+          {COLUMNS.map((column) => (
+            <Column
+              key={column.id}
+              id={column.id}
+              title={column.title}
+              icon={column.icon}
+              tickets={boardState.tickets.filter((t) => t.status === column.id)}
+              isActive={mobileActiveColumn === column.id}
+              onTicketClick={handleTicketClick}
+              onArchive={column.id === 'DONE' ? handleQuickArchive : undefined}
+              onDelete={column.id !== 'HANDLE' && column.id !== 'AI_PROCESSING' ? handleQuickDelete : undefined}
+            />
+          ))}
         </div>
 
-        {/* Archive Panel */}
-        {isArchiveOpen && (
-          <div className="board-archive">
-            <ArchivePanel
-              projectId={boardState.projectId}
-              onRestore={handleTicketRestore}
-              onClose={() => setIsArchiveOpen(false)}
-            />
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmTicket && (
+          <div className="modal-overlay" onClick={() => setDeleteConfirmTicket(null)}>
+            <div className="delete-confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <h3>Delete Ticket?</h3>
+              <p>Are you sure you want to delete "{deleteConfirmTicket.title}"?</p>
+              <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+              <div className="delete-confirm-actions">
+                <button className="btn btn-secondary" onClick={() => setDeleteConfirmTicket(null)}>
+                  Cancel
+                </button>
+                <button className="btn btn-destructive" onClick={confirmDelete}>
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         )}
-      </div>
+
+        <DragOverlay>
+          {activeTicket ? (
+            <TicketCard
+              ticket={activeTicket}
+              isDragging
+              onClick={() => {}}
+            />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* New Ticket Modal */}
       {isNewTicketOpen && (

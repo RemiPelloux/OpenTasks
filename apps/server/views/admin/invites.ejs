@@ -30,9 +30,9 @@ function renderInviteRow(ic) {
               ${ic.isActive ? 'Disable' : 'Enable'}
             </button>
           </form>
-          <form action="/admin/invites/${ic.id}/delete" method="POST" class="inline" onsubmit="return confirm('Delete this invite code?')">
+          <form action="/admin/invites/${ic.id}/delete" method="POST" class="inline delete-invite-form">
             <input type="hidden" name="_csrf" value="${csrfToken}">
-            <button type="submit" class="text-sm text-destructive hover:underline">Delete</button>
+            <button type="button" class="text-sm text-destructive hover:underline delete-invite-btn">Delete</button>
           </form>
         </div>
       </td>
@@ -145,6 +145,31 @@ bodyContent += `
     </form>
   </div>
 </div>
+
+<script>
+document.querySelectorAll('.delete-invite-btn').forEach(btn => {
+  let isConfirming = false;
+  
+  btn.addEventListener('click', function() {
+    if (!isConfirming) {
+      isConfirming = true;
+      btn.textContent = 'Confirm?';
+      btn.classList.add('font-bold');
+      
+      setTimeout(() => {
+        if (isConfirming) {
+          isConfirming = false;
+          btn.textContent = 'Delete';
+          btn.classList.remove('font-bold');
+        }
+      }, 3000);
+    } else {
+      // Submit the form
+      btn.closest('form').submit();
+    }
+  });
+});
+</script>
 `;
 %>
 <%- include('../layout', { body: bodyContent, title, csrfToken, isAuthenticated: true, user, currentPath }) %>

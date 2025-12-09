@@ -18,6 +18,8 @@ interface ColumnProps {
   tickets: Ticket[];
   isActive?: boolean;
   onTicketClick: (ticket: Ticket) => void;
+  onArchive?: (ticket: Ticket) => void;
+  onDelete?: (ticket: Ticket) => void;
 }
 
 // Column variant styling
@@ -38,6 +40,8 @@ export function Column({
   tickets,
   isActive = false,
   onTicketClick,
+  onArchive,
+  onDelete,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -76,6 +80,8 @@ export function Column({
                 key={ticket.id}
                 ticket={ticket}
                 onClick={() => onTicketClick(ticket)}
+                onArchive={onArchive}
+                onDelete={onDelete}
               />
             ))
           )}
