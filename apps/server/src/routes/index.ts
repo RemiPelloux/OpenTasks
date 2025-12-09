@@ -13,8 +13,19 @@ import { adminRoutes } from './admin.js';
 import { apiRoutes } from './api.js';
 import { settingsRoutes } from './settings.js';
 import { docsRoutes } from './docs.js';
+import { healthRoutes } from './health.js';
+import { globalLimiter, dynamicRateLimiter } from '../middleware/rateLimit.js';
 
 export function configureRoutes(app: Express): void {
+  // Health check routes (no rate limiting, no auth)
+  app.use('/health', healthRoutes);
+
+  // Apply global rate limiting
+  app.use(globalLimiter);
+  
+  // Apply dynamic rate limiting based on route
+  app.use(dynamicRateLimiter);
+
   // Landing page
   app.get('/', (req, res) => {
     if (req.session?.user) {

@@ -9,6 +9,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { z } from 'zod';
 import { addTicketJob } from '../lib/queue.js';
 import { notifySlack } from '../services/slack.js';
+import { wsService, toTicketBroadcast } from '../services/websocket.js';
+import { cacheService } from '../services/cache.js';
 
 export const ticketRoutes = Router();
 
@@ -148,6 +150,12 @@ ticketRoutes.post('/:projectId', async (req, res) => {
       await queueForAIProcessing(ticket.id, projectId);
     }
 
+    // Emit WebSocket event for real-time updates
+    wsService.ticketCreated(projectId, toTicketBroadcast(ticket));
+    
+    // Invalidate board cache
+    await cacheService.invalidateBoardState(projectId);
+
     res.status(201).json(ticket);
   } catch (error) {
     console.error('Create ticket error:', error);
@@ -206,6 +214,12 @@ ticketRoutes.put('/:projectId/:ticketId', async (req, res) => {
     if (data.status === 'HANDLE') {
       await queueForAIProcessing(ticketId, projectId);
     }
+
+    // Emit WebSocket event for real-time updates
+    wsService.ticketUpdated(projectId, toTicketBroadcast(ticket));
+    
+    // Invalidate board cache
+    await cacheService.invalidateBoardState(projectId);
 
     res.json(ticket);
   } catch (error) {
@@ -277,6 +291,12 @@ ticketRoutes.patch('/:projectId/:ticketId/status', async (req, res) => {
       await queueForAIProcessing(ticketId, projectId);
     }
 
+    // Emit WebSocket event for real-time updates
+    wsService.ticketMoved(projectId, ticketId, currentTicket.status, status, ticket.position);
+    
+    // Invalidate board cache
+    await cacheService.invalidateBoardState(projectId);
+
     res.json(ticket);
   } catch (error) {
     console.error('Update ticket status error:', error);
@@ -308,6 +328,12 @@ ticketRoutes.delete('/:projectId/:ticketId', async (req, res) => {
     await prisma.ticket.delete({
       where: { id: ticketId },
     });
+
+    // Emit WebSocket event for real-time updates
+    wsService.ticketDeleted(projectId, ticketId);
+    
+    // Invalidate board cache
+    await cacheService.invalidateBoardState(projectId);
 
     res.json({ success: true });
   } catch (error) {

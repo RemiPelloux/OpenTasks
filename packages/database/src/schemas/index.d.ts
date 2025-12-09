@@ -15,13 +15,13 @@ export declare const RegisterSchema: z.ZodObject<{
     email: z.ZodEffects<z.ZodString, string, string>;
     password: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    name: string;
     inviteCode: string;
+    name: string;
     email: string;
     password: string;
 }, {
-    name: string;
     inviteCode: string;
+    name: string;
     email: string;
     password: string;
 }>;
@@ -115,22 +115,22 @@ export declare const CursorWebhookPayloadSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     status: "pending" | "running" | "completed" | "failed" | "stopped";
     agentId: string;
-    error?: string | undefined;
     result?: {
         prUrl?: string | undefined;
         summary?: string | undefined;
         filesChanged?: string[] | undefined;
     } | undefined;
+    error?: string | undefined;
     timestamp?: string | undefined;
 }, {
     status: "pending" | "running" | "completed" | "failed" | "stopped";
     agentId: string;
-    error?: string | undefined;
     result?: {
         prUrl?: string | undefined;
         summary?: string | undefined;
         filesChanged?: string[] | undefined;
     } | undefined;
+    error?: string | undefined;
     timestamp?: string | undefined;
 }>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;

@@ -15,7 +15,7 @@ adminRoutes.use(requireAuth);
 adminRoutes.use(requireAdmin);
 
 // Admin Dashboard
-adminRoutes.get('/', async (req, res) => {
+adminRoutes.get('/', async (_req, res) => {
   try {
     // Get stats
     const [userCount, projectCount, ticketCount, activeInviteCount] = await Promise.all([
@@ -57,7 +57,7 @@ adminRoutes.get('/', async (req, res) => {
 });
 
 // Users List
-adminRoutes.get('/users', async (req, res) => {
+adminRoutes.get('/users', async (_req, res) => {
   try {
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
@@ -148,7 +148,7 @@ adminRoutes.post('/users/:id/toggle-active', async (req, res) => {
 });
 
 // Invite Codes List
-adminRoutes.get('/invites', async (req, res) => {
+adminRoutes.get('/invites', async (_req, res) => {
   try {
     const inviteCodes = await prisma.inviteCode.findMany({
       orderBy: { createdAt: 'desc' },

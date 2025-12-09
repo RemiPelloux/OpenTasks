@@ -3,7 +3,7 @@
  * Main interactive board with drag-and-drop
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -21,6 +21,7 @@ import { Column } from './Column';
 import { TicketCard } from './TicketCard';
 import { NewTicketModal } from './NewTicketModal';
 import { TicketDetailModal } from './TicketDetailModal';
+import { useWebSocket } from '../hooks/useWebSocket';
 import type { Ticket, BoardState, ColumnId } from '../types';
 
 const COLUMNS: { id: ColumnId; title: string; icon: string }[] = [
@@ -39,6 +40,7 @@ export function KanbanBoard() {
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
   const [archivedCount, setArchivedCount] = useState(0);
   const [mobileActiveColumn, setMobileActiveColumn] = useState<ColumnId>('BACKLOG');
+  const isDraggingRef = useRef(false);
 
   // Initialize board state from server-rendered data
   useEffect(() => {
@@ -82,13 +84,88 @@ export function KanbanBoard() {
     };
   }, []);
 
-  // Real-time sync: Poll for updates every 2 seconds
+  // WebSocket event handlers
+  const handleWsTicketCreated = useCallback((ticket: Partial<Ticket>) => {
+    if (isDraggingRef.current) return;
+    setBoardState((prev) => {
+      if (!prev) return prev;
+      // Check if ticket already exists
+      if (prev.tickets.some(t => t.id === ticket.id)) return prev;
+      return {
+        ...prev,
+        tickets: [...prev.tickets, ticket as Ticket],
+      };
+    });
+    showToast(`New ticket: ${ticket.title}`, 'success');
+  }, []);
+
+  const handleWsTicketUpdated = useCallback((ticket: Partial<Ticket>) => {
+    if (isDraggingRef.current) return;
+    setBoardState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tickets: prev.tickets.map((t) =>
+          t.id === ticket.id ? { ...t, ...ticket } : t
+        ),
+      };
+    });
+  }, []);
+
+  const handleWsTicketDeleted = useCallback((data: { id: string }) => {
+    if (isDraggingRef.current) return;
+    setBoardState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tickets: prev.tickets.filter((t) => t.id !== data.id),
+      };
+    });
+  }, []);
+
+  const handleWsTicketMoved = useCallback((data: { id: string; fromStatus: string; toStatus: string; position: number }) => {
+    if (isDraggingRef.current) return;
+    setBoardState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tickets: prev.tickets.map((t) =>
+          t.id === data.id ? { ...t, status: data.toStatus as ColumnId, position: data.position } : t
+        ),
+      };
+    });
+    showToast(`Ticket moved to ${data.toStatus.replace('_', ' ')}`, 'success');
+  }, []);
+
+  const handleWsBoardRefresh = useCallback(async () => {
+    if (!boardState?.projectId || isDraggingRef.current) return;
+    try {
+      const response = await fetch(`/project/${boardState.projectId}/board/state`);
+      if (response.ok) {
+        const newState = await response.json() as BoardState;
+        setBoardState(newState);
+      }
+    } catch (error) {
+      console.error('Failed to refresh board:', error);
+    }
+  }, [boardState?.projectId]);
+
+  // Connect to WebSocket for real-time updates
+  useWebSocket({
+    projectId: boardState?.projectId || null,
+    onTicketCreated: handleWsTicketCreated,
+    onTicketUpdated: handleWsTicketUpdated,
+    onTicketDeleted: handleWsTicketDeleted,
+    onTicketMoved: handleWsTicketMoved,
+    onBoardRefresh: handleWsBoardRefresh,
+  });
+
+  // Fallback polling for when WebSocket is disconnected (every 10 seconds)
   useEffect(() => {
     if (!boardState?.projectId) return;
 
     const pollInterval = setInterval(async () => {
-      // Don't poll if user is actively dragging
-      if (activeTicket) return;
+      if (isDraggingRef.current) return;
 
       try {
         const response = await fetch(`/project/${boardState.projectId}/board/state`);
@@ -96,42 +173,27 @@ export function KanbanBoard() {
 
         const newState = await response.json() as BoardState;
         
-        // Track specific changes for better UX feedback
-        const statusChanges: string[] = [];
-        
-        newState.tickets.forEach((newTicket) => {
-          const existingTicket = boardState.tickets.find(t => t.id === newTicket.id);
-          if (existingTicket && existingTicket.status !== newTicket.status) {
-            statusChanges.push(`#${newTicket.id.slice(-4)} → ${newTicket.status.replace('_', ' ')}`);
-          }
-        });
-        
+        // Only update if there are actual changes
         const hasChanges = 
           newState.tickets.length !== boardState.tickets.length ||
-          statusChanges.length > 0 ||
           newState.tickets.some((newTicket) => {
             const existingTicket = boardState.tickets.find(t => t.id === newTicket.id);
             return !existingTicket || 
-              existingTicket.title !== newTicket.title ||
-              existingTicket.prLink !== newTicket.prLink ||
-              existingTicket.assigneeId !== newTicket.assigneeId;
+              existingTicket.status !== newTicket.status ||
+              existingTicket.agentStatus !== newTicket.agentStatus ||
+              existingTicket.prLink !== newTicket.prLink;
           });
 
         if (hasChanges) {
           setBoardState(newState);
-          // Only show toast for meaningful status changes
-          if (statusChanges.length > 0) {
-            showToast(`Ticket updated: ${statusChanges[0]}`, 'success');
-          }
         }
       } catch (error) {
-        // Silently fail - don't disrupt user experience
-        console.debug('Sync poll failed:', error);
+        console.debug('Fallback sync failed:', error);
       }
-    }, 2000); // Poll every 2 seconds for faster updates
+    }, 10000); // Fallback poll every 10 seconds
 
     return () => clearInterval(pollInterval);
-  }, [boardState?.projectId, boardState?.tickets, activeTicket]);
+  }, [boardState?.projectId, boardState?.tickets]);
 
   // DnD sensors configuration
   const sensors = useSensors(
@@ -146,6 +208,7 @@ export function KanbanBoard() {
   // Handle drag start
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
+      isDraggingRef.current = true;
       const ticketId = event.active.id as string;
       const ticket = boardState?.tickets.find((t) => t.id === ticketId);
       if (ticket) {
@@ -165,6 +228,7 @@ export function KanbanBoard() {
     async (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveTicket(null);
+      isDraggingRef.current = false;
 
       if (!over || !boardState) return;
 

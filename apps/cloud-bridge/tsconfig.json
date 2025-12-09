@@ -2,12 +2,13 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "baseUrl": ".",
+    "skipLibCheck": true,
+    "noEmit": false,
+    "declaration": false,
+    "declarationMap": false,
     "paths": {
-      "@/*": ["./src/*"],
-      "@opentasks/database": ["../../packages/database/src/index.ts"],
-      "@opentasks/database/*": ["../../packages/database/src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],

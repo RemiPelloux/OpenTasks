@@ -38,6 +38,10 @@ model User {
   createdTickets   Ticket[]    @relation("CreatedTickets")
   sessions         Session[]
 
+  // Performance indexes
+  @@index([email])
+  @@index([isActive])
+  @@index([role])
   @@map("users")
 }
 
@@ -121,6 +125,10 @@ model Project {
   tickets      Ticket[]
   usageRecords UsageRecord[]
 
+  // Performance indexes
+  @@index([slug])
+  @@index([isArchived])
+  @@index([createdAt])
   @@map("projects")
 }
 
@@ -184,8 +192,14 @@ model Ticket {
   createdById String       @map("created_by_id")
   jobs        AgentJob[]
 
+  // Performance indexes - optimized for common queries
   @@index([projectId, status])
   @@index([projectId, position])
+  @@index([projectId, isArchived, status])  // Kanban board queries
+  @@index([assigneeId])                      // User's assigned tickets
+  @@index([agentId])                         // Agent status lookups
+  @@index([createdById])                     // User's created tickets
+  @@index([archivedAt])                      // Archive sorting
   @@map("tickets")
 }
 
@@ -231,8 +245,11 @@ model AgentJob {
   ticket        Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   ticketId      String        @map("ticket_id")
 
+  // Performance indexes
   @@index([cursorAgentId])
   @@index([status])
+  @@index([ticketId, status])   // Job lookup by ticket
+  @@index([createdAt])          // Job queue ordering
   @@map("agent_jobs")
 }
 

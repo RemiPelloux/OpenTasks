@@ -7,6 +7,7 @@
     "dev": "concurrently \"tsx watch src/index.ts\" \"pnpm css:watch\"",
     "build": "pnpm css:build && tsc",
     "start": "node dist/index.js",
+    "start:cluster": "node dist/cluster.js",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "css:build": "tailwindcss -i ./public/styles/globals.css -o ./public/styles/output.css --minify",
@@ -21,11 +22,13 @@
     "csrf-csrf": "^3.0.0",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.2.1",
     "express-session": "^1.17.3",
     "helmet": "^7.1.0",
     "ioredis": "^5.8.2",
     "morgan": "^1.10.0",
     "slugify": "^1.6.6",
+    "socket.io": "^4.8.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {

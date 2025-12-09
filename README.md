@@ -34,7 +34,9 @@ OpenTasks is a Kanban-style project management tool that integrates with the [Cu
 - 🤖 **AI Integration** — Cursor Cloud Agent API for automated coding
 - 🔀 **Multi-Branch Support** — Configure different branches for backend/frontend
 - 👥 **Team Collaboration** — Invite members with role-based access
+- 🔔 **Slack Notifications** — Get notified when tasks are queued, completed, or need review
 - 🔐 **Secure** — Encrypted API keys, session management, CSRF protection
+- ⚡ **Real-time Updates** — WebSocket-powered instant board synchronization
 - 📱 **Responsive** — Works on desktop and mobile
 
 ---
@@ -197,6 +199,48 @@ OpenTasks/
 
 ---
 
+## ⚡ Performance & Scalability
+
+OpenTasks is optimized for teams of 10-100+ users with the following features:
+
+### Database Optimizations
+- **Optimized Indexes** — Composite indexes on frequently queried fields (tickets, projects, users)
+- **Connection Pooling** — PostgreSQL connection management for high concurrency
+
+### Caching Layer
+- **Redis Cache** — Board state, project members, and models list cached with TTL
+- **Cache Invalidation** — Automatic invalidation on data mutations
+
+### Real-time Updates
+- **WebSocket (Socket.IO)** — Instant ticket updates without polling
+- **Room-based Subscriptions** — Per-project real-time channels
+- **Fallback Polling** — 10-second polling when WebSocket disconnects
+
+### API Optimizations
+- **Rate Limiting** — Protection against abuse (configurable per endpoint)
+- **Pagination** — Archived tickets API supports pagination
+- **Response Compression** — Gzip compression for all responses
+
+### Frontend Performance
+- **Code Splitting** — Vendor chunks for React, dnd-kit, Socket.IO
+- **Bundle Optimization** — Terser minification with console stripping
+- **Static Asset Caching** — 1-day cache headers in production
+
+### Infrastructure
+- **Health Endpoints** — `/health`, `/health/live`, `/health/ready` for monitoring
+- **Graceful Shutdown** — Proper connection draining on SIGTERM
+- **Cluster Mode** — Multi-core utilization (`pnpm start:cluster`)
+
+### Monitoring Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Full health check (database, Redis, uptime) |
+| `GET /health/live` | Kubernetes liveness probe |
+| `GET /health/ready` | Kubernetes readiness probe |
+
+---
+
 ## 🛠️ Development
 
 ### Quick Commands
@@ -209,6 +253,7 @@ OpenTasks/
 | `pnpm stop:services` | Stop Docker services |
 | `pnpm dev` | Start all dev servers (assumes services running) |
 | `pnpm build` | Build all packages for production |
+| `pnpm --filter @opentasks/server start:cluster` | Start server in cluster mode (production) |
 
 ### Database Commands
 

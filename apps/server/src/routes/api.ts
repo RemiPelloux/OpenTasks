@@ -156,12 +156,15 @@ apiRoutes.post('/tickets/:ticketId/restore', async (req, res) => {
 });
 
 /**
- * Get archived tickets for a project
- * GET /api/projects/:projectId/archived
+ * Get archived tickets for a project (with pagination)
+ * GET /api/projects/:projectId/archived?page=1&limit=20
  */
 apiRoutes.get('/projects/:projectId/archived', async (req, res) => {
   try {
     const { projectId } = req.params;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const skip = (page - 1) * limit;
 
     // Check project access
     const membership = await prisma.projectMember.findFirst({
@@ -175,6 +178,14 @@ apiRoutes.get('/projects/:projectId/archived', async (req, res) => {
       res.status(403).json({ error: 'Access denied' });
       return;
     }
+
+    // Get total count for pagination
+    const total = await prisma.ticket.count({
+      where: { 
+        projectId,
+        isArchived: true,
+      },
+    });
 
     const archivedTickets = await prisma.ticket.findMany({
       where: { 
@@ -190,9 +201,19 @@ apiRoutes.get('/projects/:projectId/archived', async (req, res) => {
         },
       },
       orderBy: { archivedAt: 'desc' },
+      skip,
+      take: limit,
     });
 
-    res.json(archivedTickets);
+    res.json({
+      tickets: archivedTickets,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error('Get archived tickets error:', error);
     res.status(500).json({ error: 'Failed to get archived tickets' });

@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import { prisma } from '@opentasks/database';
-import { requireAuth, requireProjectAccess } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 
 export const projectRoutes = Router();
 
