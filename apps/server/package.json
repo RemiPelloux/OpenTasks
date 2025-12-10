@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@opentasks/database": "workspace:*",
+    "@socket.io/redis-adapter": "^8.3.0",
     "bullmq": "^5.65.1",
     "compression": "^1.7.4",
     "connect-redis": "^7.1.0",

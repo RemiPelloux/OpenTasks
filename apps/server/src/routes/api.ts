@@ -7,6 +7,8 @@ import { Router } from 'express';
 import { prisma, decrypt } from '@opentasks/database';
 import { requireAuth } from '../middleware/auth.js';
 import { notifySlack } from '../services/slack.js';
+import { wsService, toTicketBroadcast } from '../services/websocket.js';
+import { cacheService } from '../services/cache.js';
 
 export const apiRoutes = Router();
 
@@ -49,6 +51,12 @@ apiRoutes.post('/tickets/:ticketId/validate', async (req, res) => {
       where: { ticketId },
       data: { status: 'COMPLETED', completedAt: new Date() },
     });
+
+    // Emit WebSocket event
+    wsService.ticketUpdated(ticket.projectId, toTicketBroadcast(updatedTicket));
+    
+    // Invalidate board cache
+    await cacheService.invalidateBoardState(ticket.projectId);
 
     // Send Slack notification
     notifySlack(ticketId, 'validated').catch((err) => {
@@ -100,6 +108,12 @@ apiRoutes.post('/tickets/:ticketId/archive', async (req, res) => {
       },
     });
 
+    // Emit WebSocket event (ticket removed from board)
+    wsService.ticketDeleted(ticket.projectId, ticketId);
+    
+    // Invalidate board cache
+    await cacheService.invalidateBoardState(ticket.projectId);
+
     res.json({ 
       message: 'Ticket archived successfully',
       ticket: updatedTicket,
@@ -144,6 +158,12 @@ apiRoutes.post('/tickets/:ticketId/restore', async (req, res) => {
         },
       },
     });
+
+    // Emit WebSocket event (ticket added back to board)
+    wsService.ticketCreated(ticket.projectId, toTicketBroadcast(updatedTicket));
+    
+    // Invalidate board cache
+    await cacheService.invalidateBoardState(ticket.projectId);
 
     res.json({ 
       message: 'Ticket restored successfully',
@@ -379,15 +399,47 @@ apiRoutes.get('/cursor/agents/:agentId/status', async (req, res) => {
     
     // Update ticket with latest status and branch info
     if (ticket) {
-      await prisma.ticket.update({
+      const hasStatusChange = ticket.agentStatus !== data.status;
+      const hasPrChange = ticket.prLink !== (data.target?.prUrl || null);
+      
+      // Determine if we need to update the ticket's column status
+      // This handles the case where cloud-bridge crashed/disconnected
+      const updateData: Record<string, any> = {
+        agentStatus: data.status,
+        agentBranch: data.target?.branchName || null,
+        prLink: data.target?.prUrl || ticket.prLink,
+        aiSummary: data.summary || ticket.aiSummary,
+      };
+
+      // If agent completed but ticket is still in AI_PROCESSING, move to TO_REVIEW
+      // This is a safety net for when cloud-bridge doesn't properly update the ticket
+      // Check for various completion status values from Cursor API
+      const isCompleted = ['completed', 'COMPLETED', 'finished', 'FINISHED', 'done', 'DONE'].includes(data.status);
+      const hasPrLink = data.target?.prUrl || ticket.prLink;
+      
+      if ((isCompleted || hasPrLink) && ticket.status === 'AI_PROCESSING') {
+        updateData.status = 'TO_REVIEW';
+        console.log(`[Agent Status] Auto-moving ticket ${ticket.id} to TO_REVIEW (agent status: ${data.status}, has PR: ${!!hasPrLink})`);
+      }
+      
+      // If agent failed but ticket is still in AI_PROCESSING, move back to TODO
+      const isFailed = ['failed', 'FAILED', 'error', 'ERROR', 'cancelled', 'CANCELLED'].includes(data.status);
+      if (isFailed && ticket.status === 'AI_PROCESSING' && !hasPrLink) {
+        updateData.status = 'TODO';
+        console.log(`[Agent Status] Auto-moving ticket ${ticket.id} to TODO (agent failed: ${data.status})`);
+      }
+      
+      const updatedTicket = await prisma.ticket.update({
         where: { id: ticket.id },
-        data: {
-          agentStatus: data.status,
-          agentBranch: data.target?.branchName || null,
-          prLink: data.target?.prUrl || ticket.prLink,
-          aiSummary: data.summary || ticket.aiSummary,
-        },
+        data: updateData,
       });
+
+      // Emit WebSocket event if something important changed
+      const hasColumnStatusChange = updateData.status && updateData.status !== ticket.status;
+      if (hasStatusChange || hasPrChange || hasColumnStatusChange) {
+        wsService.ticketUpdated(ticket.projectId, toTicketBroadcast(updatedTicket));
+        await cacheService.invalidateBoardState(ticket.projectId);
+      }
     }
 
     res.json({
@@ -467,13 +519,17 @@ apiRoutes.post('/cursor/agents/:agentId/stop', async (req, res) => {
     
     // Update ticket status
     if (ticket) {
-      await prisma.ticket.update({
+      const updatedTicket = await prisma.ticket.update({
         where: { id: ticket.id },
         data: {
           agentStatus: 'CANCELLED',
           status: 'TODO', // Move back to TODO so user can retry
         },
       });
+
+      // Emit WebSocket event
+      wsService.ticketUpdated(ticket.projectId, toTicketBroadcast(updatedTicket));
+      await cacheService.invalidateBoardState(ticket.projectId);
     }
 
     res.json({ id: data.id, message: 'Agent stopped successfully' });
@@ -550,13 +606,17 @@ apiRoutes.post('/cursor/agents/:agentId/followup', async (req, res) => {
 
     // Update ticket status back to AI_PROCESSING since agent will restart
     if (ticket) {
-      await prisma.ticket.update({
+      const updatedTicket = await prisma.ticket.update({
         where: { id: ticket.id },
         data: {
           status: 'AI_PROCESSING',
           agentStatus: 'RUNNING',
         },
       });
+
+      // Emit WebSocket event
+      wsService.ticketUpdated(ticket.projectId, toTicketBroadcast(updatedTicket));
+      await cacheService.invalidateBoardState(ticket.projectId);
     }
 
     res.json({ id: data.id, message: 'Follow-up sent successfully' });

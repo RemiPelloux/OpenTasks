@@ -7,6 +7,7 @@ import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { processTicketJob } from './queue/processor.js';
 import { config } from './config.js';
+import { eventPublisher } from './services/events.js';
 
 async function bootstrap(): Promise<void> {
   console.log(`
@@ -24,6 +25,9 @@ async function bootstrap(): Promise<void> {
   const connection = new Redis(config.redis.url, {
     maxRetriesPerRequest: null,
   });
+
+  // Connect event publisher for WebSocket broadcasts
+  await eventPublisher.connect();
 
   // Create worker
   const worker = new Worker(
@@ -44,6 +48,10 @@ async function bootstrap(): Promise<void> {
     {
       connection,
       concurrency: 5,
+      // Lock settings for long-running Cursor agent jobs (up to 30+ minutes)
+      lockDuration: 600000,      // 10 minutes lock duration
+      lockRenewTime: 300000,     // Renew lock every 5 minutes
+      stalledInterval: 600000,   // Check for stalled jobs every 10 minutes
       limiter: {
         max: 10,
         duration: 60000, // 10 jobs per minute max
@@ -68,6 +76,7 @@ async function bootstrap(): Promise<void> {
   const shutdown = async (): Promise<void> => {
     console.log('\n🛑 Shutting down worker...');
     await worker.close();
+    await eventPublisher.disconnect();
     await connection.quit();
     console.log('Worker shut down gracefully');
     process.exit(0);

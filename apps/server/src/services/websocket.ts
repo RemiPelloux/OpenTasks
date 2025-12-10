@@ -1,10 +1,14 @@
 /**
  * WebSocket Service
  * Real-time updates via Socket.IO
+ * Supports cluster mode via Redis adapter
  */
 
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { Redis } from 'ioredis';
+import { config } from '../config/index.js';
 
 // Event types
 export const WS_EVENTS = {
@@ -25,20 +29,31 @@ export const WS_EVENTS = {
   ERROR: 'error',
 } as const;
 
-// Minimal ticket data for broadcasts
+// Redis channel for cross-process events from cloud-bridge
+const TICKET_EVENTS_CHANNEL = 'opentasks:ticket:events';
+
+// Ticket data for broadcasts - includes all fields needed for display
 interface TicketBroadcast {
   id: string;
   title: string;
+  description?: string | null;
   status: string;
   priority: string;
   position: number;
+  targetBranch?: string | null;
   assigneeId?: string | null;
   agentStatus?: string | null;
   prLink?: string | null;
+  aiSummary?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 class WebSocketService {
   private io: Server | null = null;
+  private pubClient: Redis | null = null;
+  private subClient: Redis | null = null;
+  private eventSubClient: Redis | null = null;
 
   /**
    * Initialize Socket.IO server
@@ -57,11 +72,67 @@ class WebSocketService {
       transports: ['websocket', 'polling'],
     });
 
+    // Set up Redis adapter for cluster mode support
+    try {
+      this.pubClient = new Redis(config.redis.url);
+      this.subClient = this.pubClient.duplicate();
+      
+      this.io.adapter(createAdapter(this.pubClient, this.subClient));
+      console.log('[WebSocket] Redis adapter configured for cluster mode');
+
+      // Subscribe to cloud-bridge events
+      this.eventSubClient = new Redis(config.redis.url);
+      this.eventSubClient.subscribe(TICKET_EVENTS_CHANNEL);
+      this.eventSubClient.on('message', (channel, message) => {
+        if (channel === TICKET_EVENTS_CHANNEL) {
+          this.handleCloudBridgeEvent(message);
+        }
+      });
+      console.log('[WebSocket] Subscribed to cloud-bridge events');
+    } catch (error) {
+      console.warn('[WebSocket] Redis adapter not available, running in single-instance mode:', error);
+    }
+
     this.io.on(WS_EVENTS.CONNECTION, (socket) => {
       this.handleConnection(socket);
     });
 
     console.log('[WebSocket] Server initialized');
+  }
+
+  /**
+   * Handle events from cloud-bridge worker
+   */
+  private handleCloudBridgeEvent(message: string): void {
+    try {
+      const event = JSON.parse(message);
+      const { type, projectId, ticket, fromStatus, toStatus } = event;
+
+      console.log(`[WebSocket] Received cloud-bridge event: ${type} for project ${projectId}`);
+
+      switch (type) {
+        case 'created':
+          this.ticketCreated(projectId, ticket);
+          break;
+        case 'updated':
+          this.ticketUpdated(projectId, ticket);
+          break;
+        case 'deleted':
+          this.ticketDeleted(projectId, ticket.id);
+          break;
+        case 'moved':
+          // For moved events, use ticketMoved if we have the status info
+          if (fromStatus && toStatus) {
+            this.ticketMoved(projectId, ticket.id, fromStatus, toStatus, ticket.position);
+          } else {
+            // Fallback to ticketUpdated
+            this.ticketUpdated(projectId, ticket);
+          }
+          break;
+      }
+    } catch (error) {
+      console.error('[WebSocket] Failed to parse cloud-bridge event:', error);
+    }
   }
 
   /**
@@ -160,11 +231,27 @@ class WebSocketService {
   /**
    * Close WebSocket server
    */
-  close(): Promise<void> {
+  async close(): Promise<void> {
+    // Close Redis clients
+    if (this.pubClient) {
+      await this.pubClient.quit();
+      this.pubClient = null;
+    }
+    if (this.subClient) {
+      await this.subClient.quit();
+      this.subClient = null;
+    }
+    if (this.eventSubClient) {
+      await this.eventSubClient.quit();
+      this.eventSubClient = null;
+    }
+
+    // Close Socket.IO server
     return new Promise((resolve) => {
       if (this.io) {
         this.io.close(() => {
           console.log('[WebSocket] Server closed');
+          this.io = null;
           resolve();
         });
       } else {
@@ -188,12 +275,17 @@ export const wsService = new WebSocketService();
 interface TicketInput {
   id: string;
   title: string;
+  description?: string | null;
   status: string;
   priority: string;
   position?: number;
+  targetBranch?: string | null;
   assigneeId?: string | null;
   agentStatus?: string | null;
   prLink?: string | null;
+  aiSummary?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 // Helper function to convert Prisma ticket to broadcast format
@@ -201,12 +293,17 @@ export function toTicketBroadcast(ticket: TicketInput): TicketBroadcast {
   return {
     id: ticket.id,
     title: ticket.title,
+    description: ticket.description,
     status: ticket.status,
     priority: ticket.priority,
     position: ticket.position ?? 0,
+    targetBranch: ticket.targetBranch,
     assigneeId: ticket.assigneeId,
     agentStatus: ticket.agentStatus,
     prLink: ticket.prLink,
+    aiSummary: ticket.aiSummary,
+    createdAt: ticket.createdAt instanceof Date ? ticket.createdAt.toISOString() : ticket.createdAt,
+    updatedAt: ticket.updatedAt instanceof Date ? ticket.updatedAt.toISOString() : ticket.updatedAt,
   };
 }
 

@@ -38,10 +38,35 @@ class CacheService {
       this.redis = new Redis(config.redis.url, {
         maxRetriesPerRequest: 3,
         retryStrategy(times) {
-          if (times > 3) return null;
-          return Math.min(times * 100, 3000);
+          if (times > 10) return null; // Stop after 10 attempts
+          return Math.min(times * 200, 5000); // Max 5 second delay
         },
         lazyConnect: true,
+        enableReadyCheck: true,
+      });
+
+      // Handle connection events for proper state tracking
+      this.redis.on('connect', () => {
+        this.isConnected = true;
+        console.log('[Cache] Redis connected');
+      });
+
+      this.redis.on('ready', () => {
+        this.isConnected = true;
+        console.log('[Cache] Redis ready');
+      });
+
+      this.redis.on('error', (error) => {
+        console.error('[Cache] Redis error:', error.message);
+      });
+
+      this.redis.on('close', () => {
+        this.isConnected = false;
+        console.log('[Cache] Redis connection closed');
+      });
+
+      this.redis.on('reconnecting', () => {
+        console.log('[Cache] Redis reconnecting...');
       });
 
       await this.redis.connect();

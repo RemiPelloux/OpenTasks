@@ -15,10 +15,11 @@ import { doubleCsrf } from 'csrf-csrf';
 import { config } from '../config/index.js';
 
 export async function configureMiddleware(app: Express): Promise<void> {
-  // Security headers - relaxed in development for network access
+  // Security headers - relaxed for IP-based access without HTTPS
+  // When accessed via IP (not HTTPS), strict CORS headers break resources
   app.use(
     helmet({
-      contentSecurityPolicy: config.isProduction ? {
+      contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", "'unsafe-inline'"],
@@ -26,11 +27,15 @@ export async function configureMiddleware(app: Express): Promise<void> {
           fontSrc: ["'self'", 'https://fonts.gstatic.com'],
           imgSrc: ["'self'", 'data:', 'https:'],
           connectSrc: ["'self'", 'ws:', 'wss:'],
+          // Only upgrade insecure requests when HTTPS is available
+          upgradeInsecureRequests: config.isHttps ? [] : null,
         },
-      } : false, // Disable CSP in development for easier debugging
-      crossOriginOpenerPolicy: config.isProduction ? { policy: 'same-origin' } : false,
-      crossOriginEmbedderPolicy: config.isProduction,
-      originAgentCluster: config.isProduction,
+      },
+      // Disable these headers for HTTP (IP-based) access - they require HTTPS
+      crossOriginOpenerPolicy: config.isHttps ? { policy: 'same-origin' } : false,
+      crossOriginEmbedderPolicy: config.isHttps,
+      crossOriginResourcePolicy: config.isHttps ? { policy: 'same-origin' } : false,
+      originAgentCluster: config.isHttps,
     })
   );
 

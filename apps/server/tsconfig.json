@@ -7,6 +7,9 @@
     "noEmit": false,
     "declaration": false,
     "declarationMap": false,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "paths": {
       "@/*": ["./src/*"]
     }

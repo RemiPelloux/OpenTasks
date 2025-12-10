@@ -1,0 +1,94 @@
+# ============================================
+# OpenTasks CI Pipeline
+# Runs on all pull requests
+# ============================================
+
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+jobs:
+  # ============================================
+  # Build and Test
+  # ============================================
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build database package
+        run: pnpm --filter @opentasks/database run build
+
+      - name: Build client assets
+        run: pnpm --filter @opentasks/client-assets run build
+
+      - name: Build server
+        run: pnpm --filter @opentasks/server run build
+
+      - name: Build cloud-bridge
+        run: pnpm --filter @opentasks/cloud-bridge run build
+
+  # ============================================
+  # Docker Build Test
+  # ============================================
+  docker:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build server image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/server/Dockerfile
+          push: false
+          tags: opentasks-server:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build worker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/cloud-bridge/Dockerfile
+          push: false
+          tags: opentasks-worker:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

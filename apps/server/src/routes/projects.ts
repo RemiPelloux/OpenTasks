@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { prisma } from '@opentasks/database';
 import { requireAuth } from '../middleware/auth.js';
+import { getCachedBoardState } from '../services/cache.js';
 
 export const projectRoutes = Router();
 
@@ -87,7 +88,7 @@ projectRoutes.get('/:id/board', async (req, res) => {
       projectId: project.id,
       projectName: project.name,
       tickets: project.tickets,
-      members: project.members.map((m) => m.user),
+      members: project.members.map((m: { user: unknown }) => m.user),
       branchPresets,
       defaultBranch: project.defaultBranch || 'main',
       archivedCount,
@@ -410,7 +411,7 @@ projectRoutes.get('/:id/members', async (req, res) => {
       orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
     });
 
-    res.json({ members: members.map((m) => ({ ...m.user, role: m.role, joinedAt: m.createdAt })) });
+    res.json({ members: members.map((m: typeof members[number]) => ({ ...m.user, role: m.role, joinedAt: m.createdAt })) });
   } catch (error) {
     console.error('Get members error:', error);
     res.status(500).json({ error: 'Failed to get members' });
@@ -598,12 +599,13 @@ projectRoutes.post('/:id/members/:userId/remove', async (req, res) => {
 
 /**
  * API: Get board state for real-time sync
+ * Uses caching to reduce database load during polling
  */
 projectRoutes.get('/:id/board/state', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check project access
+    // Check project access (not cached - security critical)
     const membership = await prisma.projectMember.findFirst({
       where: {
         projectId: id,
@@ -616,60 +618,69 @@ projectRoutes.get('/:id/board/state', async (req, res) => {
       return;
     }
 
-    // Get project with tickets (excluding archived)
-    const project = await prisma.project.findUnique({
-      where: { id },
-      include: {
-        tickets: {
-          where: { isArchived: false },
-          include: {
-            assignee: {
-              select: { id: true, name: true, email: true, avatarUrl: true },
+    // Use cached board state
+    const boardState = await getCachedBoardState(id, async () => {
+      // Get project with tickets (excluding archived)
+      const project = await prisma.project.findUnique({
+        where: { id },
+        include: {
+          tickets: {
+            where: { isArchived: false },
+            include: {
+              assignee: {
+                select: { id: true, name: true, email: true, avatarUrl: true },
+              },
+              createdBy: {
+                select: { id: true, name: true },
+              },
             },
-            createdBy: {
-              select: { id: true, name: true },
+            orderBy: [{ status: 'asc' }, { position: 'asc' }],
+          },
+          members: {
+            include: {
+              user: {
+                select: { id: true, name: true, email: true, avatarUrl: true },
+              },
             },
           },
-          orderBy: [{ status: 'asc' }, { position: 'asc' }],
         },
-        members: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true, avatarUrl: true },
-            },
-          },
-        },
-      },
+      });
+
+      if (!project) {
+        return null;
+      }
+
+      // Get archived ticket count
+      const archivedCount = await prisma.ticket.count({
+        where: { projectId: id, isArchived: true },
+      });
+
+      // Parse branch presets
+      let branchPresets: Array<{ name: string; branch: string }> = [];
+      try {
+        branchPresets = project.branchPresets ? JSON.parse(project.branchPresets) : [];
+      } catch {
+        // Ignore parse errors
+      }
+
+      return {
+        projectId: project.id,
+        projectName: project.name,
+        tickets: project.tickets,
+        members: project.members.map((m: { user: Record<string, unknown>; role: string }) => ({ ...m.user, role: m.role })),
+        branchPresets,
+        defaultBranch: project.defaultBranch || 'main',
+        archivedCount,
+        updatedAt: new Date().toISOString(),
+      };
     });
 
-    // Get archived ticket count
-    const archivedCount = await prisma.ticket.count({
-      where: { projectId: id, isArchived: true },
-    });
-
-    if (!project) {
+    if (!boardState) {
       res.status(404).json({ error: 'Project not found' });
       return;
     }
 
-    // Parse branch presets
-    let branchPresets: Array<{ name: string; branch: string }> = [];
-    try {
-      branchPresets = project.branchPresets ? JSON.parse(project.branchPresets) : [];
-    } catch {
-      // Ignore parse errors
-    }
-
-    res.json({
-      projectId: project.id,
-      projectName: project.name,
-      tickets: project.tickets,
-      members: project.members.map((m) => ({ ...m.user, role: m.role })),
-      branchPresets,
-      defaultBranch: project.defaultBranch || 'main',
-      archivedCount,
-      updatedAt: new Date().toISOString(),
-    });
+    res.json(boardState);
   } catch (error) {
     console.error('Get board state error:', error);
     res.status(500).json({ error: 'Failed to get board state' });

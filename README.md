@@ -294,6 +294,65 @@ pnpm --filter @opentasks/cloud-bridge run dev
 
 ---
 
+## 🌐 Production Deployment
+
+Ready to deploy OpenTasks to your server? See the complete **[Deployment Guide](DEPLOYMENT.md)**.
+
+### Quick Deploy
+
+```bash
+# 1. Clone to your server
+git clone https://github.com/your-username/opentasks.git
+cd opentasks
+
+# 2. Configure environment
+cp env.production.example .env
+nano .env  # Edit with your values
+
+# 3. Set up SSL (Let's Encrypt)
+mkdir -p nginx/ssl
+certbot certonly --standalone -d yourdomain.com
+cp /etc/letsencrypt/live/yourdomain.com/*.pem nginx/ssl/
+
+# 4. Deploy
+./scripts/deploy.sh
+```
+
+### Requirements
+
+- Linux server (2GB+ RAM)
+- Docker & Docker Compose
+- Domain with DNS pointing to server
+- Ports 80 and 443 open
+
+### Architecture
+
+```
+                    ┌─────────────┐
+                    │    NGINX    │  (SSL termination, load balancing)
+                    │   :80/:443  │
+                    └──────┬──────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+    ┌──────▼─────┐  ┌──────▼─────┐  ┌──────▼──────┐
+    │   Server   │  │   Server   │  │   Worker    │
+    │   (web)    │  │  (replica) │  │ (cloud-     │
+    │   :3000    │  │   :3000    │  │  bridge)    │
+    └──────┬─────┘  └──────┬─────┘  └──────┬──────┘
+           │               │               │
+           └───────────────┼───────────────┘
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+       ┌──────▼─────┐            ┌──────▼─────┐
+       │ PostgreSQL │            │   Redis    │
+       │   :5432    │            │   :6379    │
+       └────────────┘            └────────────┘
+```
+
+---
+
 ## 📄 License
 
 MIT License — see [LICENSE](LICENSE) for details.

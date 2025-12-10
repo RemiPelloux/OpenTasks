@@ -84,23 +84,42 @@ export function KanbanBoard() {
     };
   }, []);
 
+  // Track recently modified tickets to avoid duplicate toasts/updates
+  const recentlyCreatedRef = useRef<Set<string>>(new Set());
+  const recentlyMovedRef = useRef<Set<string>>(new Set());
+  const recentlyDeletedRef = useRef<Set<string>>(new Set());
+  const recentlyUpdatedRef = useRef<Set<string>>(new Set());
+
   // WebSocket event handlers
   const handleWsTicketCreated = useCallback((ticket: Partial<Ticket>) => {
     if (isDraggingRef.current) return;
+    
+    let wasAdded = false;
     setBoardState((prev) => {
       if (!prev) return prev;
-      // Check if ticket already exists
+      // Check if ticket already exists (created locally)
       if (prev.tickets.some(t => t.id === ticket.id)) return prev;
+      wasAdded = true;
       return {
         ...prev,
         tickets: [...prev.tickets, ticket as Ticket],
       };
     });
-    showToast(`New ticket: ${ticket.title}`, 'success');
+    
+    // Only show toast if this ticket wasn't created by us (added via WebSocket)
+    if (wasAdded && !recentlyCreatedRef.current.has(ticket.id!)) {
+      showToast(`New ticket: ${ticket.title}`, 'success');
+    }
+    recentlyCreatedRef.current.delete(ticket.id!);
   }, []);
 
   const handleWsTicketUpdated = useCallback((ticket: Partial<Ticket>) => {
     if (isDraggingRef.current) return;
+    // Skip if we just updated this ticket locally
+    if (recentlyUpdatedRef.current.has(ticket.id!)) {
+      recentlyUpdatedRef.current.delete(ticket.id!);
+      return;
+    }
     setBoardState((prev) => {
       if (!prev) return prev;
       return {
@@ -114,19 +133,36 @@ export function KanbanBoard() {
 
   const handleWsTicketDeleted = useCallback((data: { id: string }) => {
     if (isDraggingRef.current) return;
+    // Skip if we just deleted this ticket locally
+    if (recentlyDeletedRef.current.has(data.id)) {
+      recentlyDeletedRef.current.delete(data.id);
+      return;
+    }
     setBoardState((prev) => {
       if (!prev) return prev;
+      // Check if ticket still exists before showing any feedback
+      const exists = prev.tickets.some(t => t.id === data.id);
+      if (!exists) return prev;
       return {
         ...prev,
         tickets: prev.tickets.filter((t) => t.id !== data.id),
       };
     });
+    showToast('A ticket was deleted', 'warning');
   }, []);
 
   const handleWsTicketMoved = useCallback((data: { id: string; fromStatus: string; toStatus: string; position: number }) => {
     if (isDraggingRef.current) return;
+    // Skip if we just moved this ticket locally (via drag-drop)
+    if (recentlyMovedRef.current.has(data.id)) {
+      recentlyMovedRef.current.delete(data.id);
+      return;
+    }
     setBoardState((prev) => {
       if (!prev) return prev;
+      // Check if the ticket's status is actually different
+      const ticket = prev.tickets.find(t => t.id === data.id);
+      if (!ticket || ticket.status === data.toStatus) return prev;
       return {
         ...prev,
         tickets: prev.tickets.map((t) =>
@@ -238,6 +274,10 @@ export function KanbanBoard() {
 
       if (!ticket || ticket.status === newStatus) return;
 
+      // Mark as recently moved to suppress WebSocket duplicate
+      recentlyMovedRef.current.add(ticketId);
+      setTimeout(() => recentlyMovedRef.current.delete(ticketId), 5000);
+
       // Optimistic update
       setBoardState((prev) => {
         if (!prev) return prev;
@@ -302,6 +342,10 @@ export function KanbanBoard() {
 
   // Handle ticket update
   const handleTicketUpdate = useCallback((updatedTicket: Ticket) => {
+    // Mark as recently updated to suppress WebSocket duplicate
+    recentlyUpdatedRef.current.add(updatedTicket.id);
+    setTimeout(() => recentlyUpdatedRef.current.delete(updatedTicket.id), 5000);
+
     setBoardState((prev) => {
       if (!prev) return prev;
       return {
@@ -316,8 +360,25 @@ export function KanbanBoard() {
 
   // Handle new ticket creation
   const handleNewTicket = useCallback((newTicket: Ticket) => {
+    // Mark as recently created to suppress WebSocket toast
+    recentlyCreatedRef.current.add(newTicket.id);
+    
     setBoardState((prev) => {
       if (!prev) return prev;
+      
+      // Check if ticket already exists (might be added via WebSocket with partial data)
+      const existingIndex = prev.tickets.findIndex(t => t.id === newTicket.id);
+      if (existingIndex >= 0) {
+        // Merge full ticket data over the partial WebSocket data
+        const updatedTickets = [...prev.tickets];
+        updatedTickets[existingIndex] = newTicket;
+        return {
+          ...prev,
+          tickets: updatedTickets,
+        };
+      }
+      
+      // Add new ticket
       return {
         ...prev,
         tickets: [...prev.tickets, newTicket],
@@ -325,12 +386,19 @@ export function KanbanBoard() {
     });
     setIsNewTicketOpen(false);
     showToast('Ticket created successfully', 'success');
+    
+    // Clean up after a short delay
+    setTimeout(() => recentlyCreatedRef.current.delete(newTicket.id), 5000);
   }, []);
 
   // Quick archive from Done column
   const handleQuickArchive = useCallback(async (ticket: Ticket) => {
     if (!boardState) return;
     
+    // Mark as recently updated to suppress WebSocket events
+    recentlyUpdatedRef.current.add(ticket.id);
+    setTimeout(() => recentlyUpdatedRef.current.delete(ticket.id), 5000);
+
     try {
       const response = await fetch(`/api/tickets/${ticket.id}/archive`, {
         method: 'POST',
@@ -370,6 +438,10 @@ export function KanbanBoard() {
   const confirmDelete = useCallback(async () => {
     if (!boardState || !deleteConfirmTicket) return;
     
+    // Mark as recently deleted to suppress WebSocket duplicate
+    recentlyDeletedRef.current.add(deleteConfirmTicket.id);
+    setTimeout(() => recentlyDeletedRef.current.delete(deleteConfirmTicket.id), 5000);
+
     try {
       const response = await fetch(`/api/tickets/${boardState.projectId}/${deleteConfirmTicket.id}`, {
         method: 'DELETE',

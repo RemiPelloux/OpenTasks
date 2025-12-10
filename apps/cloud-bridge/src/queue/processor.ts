@@ -8,6 +8,7 @@ import { prisma, decrypt, sanitizePromptInput } from '@opentasks/database';
 import { CursorApiClient } from '../cursor-api/client.js';
 import { checkCostGuardrails, recordUsage } from '../services/cost-guardrails.js';
 import { notifySlack } from '../services/slack.js';
+import { eventPublisher } from '../services/events.js';
 
 interface TicketJobData {
   jobId: string;
@@ -32,9 +33,26 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
   });
 
   // Update ticket status to AI_PROCESSING
-  await prisma.ticket.update({
+  const ticket = await prisma.ticket.update({
     where: { id: ticketId },
     data: { status: 'AI_PROCESSING' },
+  });
+
+  // Publish event for WebSocket broadcast
+  await eventPublisher.publish({
+    type: 'moved',
+    projectId,
+    fromStatus: 'HANDLE',
+    toStatus: 'AI_PROCESSING',
+    ticket: {
+      id: ticket.id,
+      title: ticket.title,
+      status: ticket.status,
+      priority: ticket.priority,
+      position: ticket.position,
+      agentStatus: ticket.agentStatus,
+      prLink: ticket.prLink,
+    },
   });
 
   try {
@@ -141,12 +159,30 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
         },
       });
 
-      await prisma.ticket.update({
+      const completedTicket = await prisma.ticket.update({
         where: { id: ticketId },
         data: {
           status: 'TO_REVIEW',
           prLink: result.prUrl,
           aiSummary: result.summary || 'AI agent completed task',
+        },
+      });
+
+      // Publish event for WebSocket broadcast
+      await eventPublisher.publish({
+        type: 'moved',
+        projectId,
+        fromStatus: 'AI_PROCESSING',
+        toStatus: 'TO_REVIEW',
+        ticket: {
+          id: completedTicket.id,
+          title: completedTicket.title,
+          status: completedTicket.status,
+          priority: completedTicket.priority,
+          position: completedTicket.position,
+          agentStatus: 'completed',
+          prLink: completedTicket.prLink,
+          aiSummary: completedTicket.aiSummary,
         },
       });
 
@@ -173,11 +209,29 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
     });
 
     // Move ticket back to TODO
-    await prisma.ticket.update({
+    const failedTicket = await prisma.ticket.update({
       where: { id: ticketId },
       data: {
         status: 'TODO',
         aiSummary: `AI processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      },
+    });
+
+    // Publish event for WebSocket broadcast
+    await eventPublisher.publish({
+      type: 'moved',
+      projectId,
+      fromStatus: 'AI_PROCESSING',
+      toStatus: 'TODO',
+      ticket: {
+        id: failedTicket.id,
+        title: failedTicket.title,
+        status: failedTicket.status,
+        priority: failedTicket.priority,
+        position: failedTicket.position,
+        agentStatus: 'failed',
+        prLink: failedTicket.prLink,
+        aiSummary: failedTicket.aiSummary,
       },
     });
 

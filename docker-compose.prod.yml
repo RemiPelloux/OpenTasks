@@ -1,0 +1,196 @@
+# ============================================
+# OpenTasks Production Docker Compose
+# 
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Prerequisites:
+#   1. Copy .env.example to .env and configure
+#   2. Update DOMAIN and SSL settings
+# ============================================
+
+services:
+  # ============================================
+  # NGINX Reverse Proxy with SSL
+  # Handles HTTPS termination and load balancing
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: opentasks-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"       # HTTP (redirects to HTTPS)
+      - "443:443"     # HTTPS
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - server
+    networks:
+      - opentasks-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # OpenTasks Web Server
+  # Express MPA with React islands
+  # ============================================
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: opentasks-server
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql://opentasks:${DB_PASSWORD}@postgres:5432/opentasks
+      - REDIS_URL=redis://redis:6379
+      - SESSION_SECRET=${SESSION_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - CSRF_SECRET=${CSRF_SECRET}
+      - CLIENT_URL=${CLIENT_URL:-https://your-domain.com}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - opentasks-network
+    # No port exposure - nginx handles external traffic
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # ============================================
+  # OpenTasks Cloud Bridge Worker
+  # Background job processor for AI agents
+  # ============================================
+  cloud-bridge:
+    build:
+      context: .
+      dockerfile: apps/cloud-bridge/Dockerfile
+    container_name: opentasks-worker
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://opentasks:${DB_PASSWORD}@postgres:5432/opentasks
+      - REDIS_URL=redis://redis:6379
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - opentasks-network
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # ============================================
+  # PostgreSQL Database
+  # Persistent data storage
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: opentasks-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: opentasks
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: opentasks
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - opentasks-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opentasks -d opentasks"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  # ============================================
+  # Redis Cache & Queue
+  # Session store, caching, and job queue
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: opentasks-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy volatile-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - opentasks-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================
+  # Database Migrations (run once)
+  # Applies Prisma migrations on startup
+  # ============================================
+  migrations:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: opentasks-migrations
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://opentasks:${DB_PASSWORD}@postgres:5432/opentasks
+    command: sh -c "cd /app/packages/database && npx prisma migrate deploy"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - opentasks-network
+    restart: "no"
+
+# ============================================
+# Named Volumes for Data Persistence
+# ============================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ============================================
+# Internal Network
+# ============================================
+networks:
+  opentasks-network:
+    driver: bridge
+

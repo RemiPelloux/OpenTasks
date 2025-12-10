@@ -19,12 +19,17 @@ export const WS_EVENTS = {
 interface TicketBroadcast {
   id: string;
   title: string;
+  description?: string | null;
   status: string;
   priority: string;
   position: number;
+  targetBranch?: string | null;
   assigneeId?: string | null;
   agentStatus?: string | null;
   prLink?: string | null;
+  aiSummary?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface TicketMovedData {
@@ -53,8 +58,28 @@ export function useWebSocket({
 }: UseWebSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
   const isConnectedRef = useRef(false);
+  
+  // Store callbacks in refs to avoid reconnection when they change
+  const callbacksRef = useRef({
+    onTicketCreated,
+    onTicketUpdated,
+    onTicketDeleted,
+    onTicketMoved,
+    onBoardRefresh,
+  });
 
-  // Connect to WebSocket
+  // Update refs when callbacks change (without triggering reconnect)
+  useEffect(() => {
+    callbacksRef.current = {
+      onTicketCreated,
+      onTicketUpdated,
+      onTicketDeleted,
+      onTicketMoved,
+      onBoardRefresh,
+    };
+  }, [onTicketCreated, onTicketUpdated, onTicketDeleted, onTicketMoved, onBoardRefresh]);
+
+  // Connect to WebSocket - only reconnects when projectId changes
   useEffect(() => {
     if (!projectId) return;
 
@@ -83,30 +108,30 @@ export function useWebSocket({
       console.error('[WebSocket] Connection error:', error);
     });
 
-    // Event listeners
+    // Event listeners - use refs to always call latest callbacks
     socket.on(WS_EVENTS.TICKET_CREATED, (ticket: TicketBroadcast) => {
       console.log('[WebSocket] Ticket created:', ticket.id);
-      onTicketCreated?.(ticket);
+      callbacksRef.current.onTicketCreated?.(ticket);
     });
 
     socket.on(WS_EVENTS.TICKET_UPDATED, (ticket: TicketBroadcast) => {
       console.log('[WebSocket] Ticket updated:', ticket.id);
-      onTicketUpdated?.(ticket);
+      callbacksRef.current.onTicketUpdated?.(ticket);
     });
 
     socket.on(WS_EVENTS.TICKET_DELETED, (data: { id: string }) => {
       console.log('[WebSocket] Ticket deleted:', data.id);
-      onTicketDeleted?.(data);
+      callbacksRef.current.onTicketDeleted?.(data);
     });
 
     socket.on(WS_EVENTS.TICKET_MOVED, (data: TicketMovedData) => {
       console.log('[WebSocket] Ticket moved:', data.id, data.fromStatus, '->', data.toStatus);
-      onTicketMoved?.(data);
+      callbacksRef.current.onTicketMoved?.(data);
     });
 
     socket.on(WS_EVENTS.BOARD_REFRESH, () => {
       console.log('[WebSocket] Board refresh requested');
-      onBoardRefresh?.();
+      callbacksRef.current.onBoardRefresh?.();
     });
 
     return () => {
@@ -117,7 +142,7 @@ export function useWebSocket({
       socketRef.current = null;
       isConnectedRef.current = false;
     };
-  }, [projectId, onTicketCreated, onTicketUpdated, onTicketDeleted, onTicketMoved, onBoardRefresh]);
+  }, [projectId]); // Only reconnect when projectId changes
 
   // Check if connected
   const isConnected = useCallback(() => {
