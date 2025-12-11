@@ -30,7 +30,14 @@ declare module 'express-session' {
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   if (!req.session?.user) {
     // Store intended destination for redirect after login
-    req.session.returnTo = req.originalUrl;
+    // BUT exclude API endpoints (they should return JSON, not redirect)
+    const url = req.originalUrl;
+    const isApiEndpoint = url.includes('/api/') || url.endsWith('/state') || url.includes('/state?');
+    
+    if (!isApiEndpoint) {
+      req.session.returnTo = url;
+    }
+    
     res.redirect('/login');
     return;
   }
