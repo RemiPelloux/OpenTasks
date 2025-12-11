@@ -1,13 +1,13 @@
 <% const body = `
 <style>
   /* ============================================
-     OpenTasks Landing Page - Hacker Chic Theme
-     Dark mode, neon accents, developer-focused
+     OpenTasks Landing Page - Command Center Theme
+     Professional, clean, Mission Control vibes
   ============================================ */
   
   .landing-page {
-    background: #0a0a0f;
-    color: #e2e8f0;
+    background: #0f1419;
+    color: #e7edf4;
     min-height: 100vh;
     overflow-x: hidden;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -17,37 +17,45 @@
     color: inherit;
   }
 
-  /* Neon glow effects */
-  .neon-green { color: #00ff88; text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
-  .neon-blue { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
-  .neon-purple { color: #a855f7; text-shadow: 0 0 10px rgba(168, 85, 247, 0.5); }
+  /* Status colors */
+  .status-active { color: #22c55e; }
+  .status-processing { color: #f59e0b; }
+  .status-done { color: #3b82f6; }
+  
+  /* Accent highlights */
+  .accent-green { color: #22c55e; }
+  .accent-blue { color: #3b82f6; }
+  .accent-amber { color: #f59e0b; }
 
   /* Animations */
-  @keyframes pulse-glow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+  @keyframes pulse-status {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
   }
 
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
-
-  @keyframes typing {
-    from { width: 0; }
-    to { width: 100%; }
-  }
-
-  @keyframes fade-in-up {
+  @keyframes slide-in {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
-  .animate-fade-in { animation: fade-in-up 0.6s ease-out forwards; }
-  .animate-delay-1 { animation-delay: 0.1s; opacity: 0; }
-  .animate-delay-2 { animation-delay: 0.2s; opacity: 0; }
-  .animate-delay-3 { animation-delay: 0.3s; opacity: 0; }
-  .animate-delay-4 { animation-delay: 0.4s; opacity: 0; }
+  @keyframes card-move {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(120px); }
+    100% { transform: translateX(120px); opacity: 0; }
+  }
+
+  @keyframes toast-appear {
+    0% { opacity: 0; transform: translateY(20px); }
+    20% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+
+  .animate-slide-in { animation: slide-in 0.6s ease-out forwards; }
+  .delay-1 { animation-delay: 0.1s; opacity: 0; }
+  .delay-2 { animation-delay: 0.2s; opacity: 0; }
+  .delay-3 { animation-delay: 0.3s; opacity: 0; }
+  .delay-4 { animation-delay: 0.4s; opacity: 0; }
 
   /* Header */
   .landing-header {
@@ -56,15 +64,15 @@
     left: 0;
     right: 0;
     z-index: 100;
-    background: rgba(10, 10, 15, 0.9);
+    background: rgba(15, 20, 25, 0.95);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
   }
 
   .landing-header nav {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 16px 24px;
+    padding: 14px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -75,7 +83,7 @@
     align-items: center;
     gap: 10px;
     font-weight: 700;
-    font-size: 20px;
+    font-size: 18px;
     color: #fff;
     text-decoration: none;
   }
@@ -83,12 +91,20 @@
   .logo-icon {
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
+  }
+
+  .logo-status {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse-status 2s infinite;
   }
 
   .nav-links {
@@ -98,7 +114,7 @@
   }
 
   .nav-links a {
-    color: #94a3b8;
+    color: #8b949e;
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
@@ -115,7 +131,7 @@
 
   .btn-ghost {
     padding: 8px 16px;
-    color: #94a3b8;
+    color: #8b949e;
     font-weight: 500;
     text-decoration: none;
     transition: color 0.2s;
@@ -125,8 +141,8 @@
 
   .btn-primary {
     padding: 10px 20px;
-    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-    color: #0a0a0f !important;
+    background: #22c55e;
+    color: #0f1419 !important;
     border-radius: 8px;
     font-weight: 600;
     font-size: 14px;
@@ -135,8 +151,8 @@
   }
 
   .btn-primary:hover {
+    background: #16a34a;
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.3);
   }
 
   /* Hero Section */
@@ -144,151 +160,148 @@
     min-height: 100vh;
     display: flex;
     align-items: center;
-    padding: 120px 24px 80px;
+    padding: 100px 24px 60px;
     position: relative;
-    overflow: hidden;
   }
 
   .hero-section::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 30% 20%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 70% 80%, rgba(0, 212, 255, 0.06) 0%, transparent 50%);
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 600px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(34, 197, 94, 0.08) 0%, transparent 60%);
     pointer-events: none;
   }
 
-  .hero-content {
+  .hero-container {
     max-width: 1200px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 80px;
     align-items: center;
-    position: relative;
-    z-index: 1;
   }
 
   .hero-text h1 {
-    font-size: 56px;
-    font-weight: 800;
-    line-height: 1.1;
-    margin-bottom: 24px;
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
   }
 
   .hero-text h1 span {
-    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #22c55e;
   }
 
   .hero-subtitle {
     font-size: 18px;
-    color: #94a3b8;
+    color: #8b949e;
     line-height: 1.7;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
-  .hero-price {
-    display: inline-flex;
+  .hero-workflow {
+    display: flex;
     align-items: center;
     gap: 12px;
-    background: rgba(0, 255, 136, 0.1);
-    border: 1px solid rgba(0, 255, 136, 0.2);
-    border-radius: 100px;
-    padding: 8px 20px;
+    padding: 16px 20px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 10px;
     margin-bottom: 32px;
+    font-size: 15px;
   }
 
-  .hero-price .price {
-    font-size: 24px;
-    font-weight: 700;
-    color: #00ff88;
+  .workflow-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .hero-price .period {
-    color: #94a3b8;
-    font-size: 14px;
+  .workflow-arrow {
+    color: #8b949e;
   }
 
   .hero-cta {
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
+    margin-bottom: 32px;
   }
 
   .btn-cta {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 16px 32px;
-    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-    color: #0a0a0f !important;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 16px;
+    padding: 14px 28px;
+    background: #22c55e;
+    color: #0f1419 !important;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
     text-decoration: none;
-    transition: all 0.3s;
+    transition: all 0.2s;
   }
 
   .btn-cta:hover {
+    background: #16a34a;
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0, 255, 136, 0.4);
-  }
-
-  .btn-cta .badge {
-    background: rgba(0,0,0,0.2);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 12px;
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.25);
   }
 
   .btn-secondary {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 16px 32px;
+    padding: 14px 28px;
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.2);
-    color: #fff !important;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e7edf4 !important;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 15px;
     text-decoration: none;
-    transition: all 0.3s;
+    transition: all 0.2s;
   }
 
   .btn-secondary:hover {
     background: rgba(255,255,255,0.05);
-    border-color: rgba(255,255,255,0.3);
+    border-color: rgba(255,255,255,0.25);
   }
 
-  /* Hero Visual - Split Screen */
+  .hero-meta {
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: #8b949e;
+  }
+
+  .hero-meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Hero Animation */
   .hero-visual {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    perspective: 1000px;
-  }
-
-  .visual-kanban, .visual-terminal {
-    background: #12121a;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
+    position: relative;
+    background: #161b22;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.4);
   }
 
   .visual-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 16px;
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
   }
 
   .visual-dot {
@@ -302,75 +315,126 @@
   .visual-dot.green { background: #27c93f; }
 
   .visual-title {
-    margin-left: 8px;
+    margin-left: auto;
     font-size: 12px;
-    color: #64748b;
-  }
-
-  .kanban-mini {
-    padding: 16px;
+    color: #8b949e;
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 6px;
   }
 
-  .kanban-column {
+  .visual-title .status-dot {
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse-status 2s infinite;
+  }
+
+  .kanban-demo {
+    padding: 24px;
+    display: flex;
+    gap: 16px;
+  }
+
+  .demo-column {
     flex: 1;
     min-width: 0;
   }
 
-  .kanban-column-title {
-    font-size: 10px;
+  .demo-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .demo-column-title {
+    font-size: 12px;
     font-weight: 600;
-    color: #64748b;
-    margin-bottom: 8px;
+    color: #8b949e;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
-  .kanban-card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 6px;
-    padding: 8px;
-    margin-bottom: 6px;
-    font-size: 10px;
-  }
-
-  .kanban-card.active {
-    border-color: #00ff88;
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
-  }
-
-  .terminal-content {
-    padding: 16px;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  .demo-column-count {
     font-size: 11px;
-    line-height: 1.6;
+    color: #6e7681;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 10px;
   }
 
-  .terminal-line {
+  .demo-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .demo-card:hover {
+    border-color: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+  }
+
+  .demo-card.processing {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.08);
+  }
+
+  .demo-card.success {
+    border-color: rgba(34, 197, 94, 0.4);
+    background: rgba(34, 197, 94, 0.08);
+  }
+
+  .demo-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #e7edf4;
+  }
+
+  .demo-card-meta {
     display: flex;
-    margin-bottom: 4px;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #6e7681;
   }
 
-  .terminal-prompt {
-    color: #00ff88;
-    margin-right: 8px;
+  .demo-card-tag {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
   }
 
-  .terminal-command { color: #fff; }
-  .terminal-output { color: #64748b; }
-  .terminal-success { color: #00ff88; }
-  .terminal-cursor {
-    display: inline-block;
-    width: 8px;
-    height: 14px;
-    background: #00ff88;
-    animation: blink 1s infinite;
-    vertical-align: middle;
+  .demo-card-tag.feature { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+  .demo-card-tag.agent { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+  .demo-card-tag.done { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+
+  .demo-toast {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: #22c55e;
+    color: #0f1419 !important;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: toast-appear 4s ease-in-out infinite;
   }
 
-  /* Problem/Solution Section */
+  /* Section Styling */
   .section {
     padding: 100px 24px;
     position: relative;
@@ -386,164 +450,211 @@
     margin-bottom: 60px;
   }
 
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #22c55e;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
   .section-header h2 {
     font-size: 40px;
     font-weight: 700;
     margin-bottom: 16px;
+    letter-spacing: -0.02em;
   }
 
   .section-header p {
     font-size: 18px;
-    color: #94a3b8;
+    color: #8b949e;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
   }
 
-  .problem-solution {
+  /* Developer Journey Section */
+  .journey-section {
+    background: linear-gradient(180deg, rgba(34, 197, 94, 0.02) 0%, transparent 100%);
+  }
+
+  .journey-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px;
+    gap: 32px;
   }
 
-  .problem-card, .solution-card {
-    padding: 32px;
+  .journey-card {
+    padding: 36px;
     border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
   }
 
-  .problem-card {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+  .journey-card.friction {
+    background: rgba(239, 68, 68, 0.05);
+    border-color: rgba(239, 68, 68, 0.15);
   }
 
-  .solution-card {
-    background: rgba(0, 255, 136, 0.1);
-    border: 1px solid rgba(0, 255, 136, 0.2);
+  .journey-card.solution {
+    background: rgba(34, 197, 94, 0.05);
+    border-color: rgba(34, 197, 94, 0.15);
   }
 
-  .card-icon {
+  .journey-icon {
     width: 48px;
     height: 48px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 22px;
     margin-bottom: 20px;
   }
 
-  .problem-card .card-icon { background: rgba(239, 68, 68, 0.2); }
-  .solution-card .card-icon { background: rgba(0, 255, 136, 0.2); }
+  .journey-card.friction .journey-icon { background: rgba(239, 68, 68, 0.15); }
+  .journey-card.solution .journey-icon { background: rgba(34, 197, 94, 0.15); }
 
-  .card-title {
-    font-size: 20px;
+  .journey-title {
+    font-size: 18px;
     font-weight: 600;
     margin-bottom: 12px;
   }
 
-  .problem-card .card-title { color: #f87171; }
-  .solution-card .card-title { color: #00ff88; }
+  .journey-card.friction .journey-title { color: #f87171; }
+  .journey-card.solution .journey-title { color: #22c55e; }
 
-  .card-text {
-    color: #94a3b8;
+  .journey-text {
+    color: #8b949e;
     line-height: 1.7;
+    font-size: 15px;
   }
 
-  /* BYOK Section */
-  .byok-section {
-    background: linear-gradient(180deg, rgba(0, 255, 136, 0.03) 0%, transparent 100%);
+  .journey-benefit {
+    margin-top: 40px;
+    padding: 24px;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
   }
 
-  .byok-grid {
+  .journey-benefit-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #3b82f6;
+    margin-bottom: 8px;
+  }
+
+  .journey-benefit-text {
+    color: #8b949e;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Team Features Section */
+  .team-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
   }
 
-  .byok-card {
-    background: rgba(255,255,255,0.03);
+  .team-card {
+    background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     padding: 32px;
     transition: all 0.3s;
   }
 
-  .byok-card:hover {
-    border-color: rgba(0, 255, 136, 0.3);
+  .team-card:hover {
+    border-color: rgba(59, 130, 246, 0.3);
     transform: translateY(-4px);
   }
 
-  .byok-icon {
+  .team-icon {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 212, 255, 0.2) 100%);
+    background: rgba(59, 130, 246, 0.12);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 22px;
     margin-bottom: 20px;
   }
 
-  .byok-title {
-    font-size: 18px;
+  .team-title {
+    font-size: 17px;
     font-weight: 600;
-    margin-bottom: 8px;
-    color: #fff;
+    margin-bottom: 10px;
+    color: #e7edf4;
   }
 
-  .byok-text {
-    color: #94a3b8;
+  .team-text {
+    color: #8b949e;
     font-size: 14px;
     line-height: 1.6;
   }
 
-  /* Features Grid */
-  .features-grid {
+  /* Quality & Control Section */
+  .quality-section {
+    background: linear-gradient(180deg, transparent 0%, rgba(59, 130, 246, 0.03) 100%);
+  }
+
+  .quality-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 24px;
   }
 
-  .feature-card {
-    background: rgba(255,255,255,0.03);
+  .quality-card {
+    background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 16px;
     padding: 32px;
-    display: flex;
-    gap: 20px;
+    text-align: center;
     transition: all 0.3s;
   }
 
-  .feature-card:hover {
-    border-color: rgba(0, 212, 255, 0.3);
+  .quality-card:hover {
+    border-color: rgba(34, 197, 94, 0.3);
   }
 
-  .feature-icon {
-    width: 48px;
-    height: 48px;
-    background: rgba(0, 212, 255, 0.15);
-    border-radius: 12px;
+  .quality-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
+    font-size: 24px;
+    margin: 0 auto 20px;
   }
 
-  .feature-title {
-    font-size: 16px;
+  .quality-title {
+    font-size: 17px;
     font-weight: 600;
-    margin-bottom: 8px;
-    color: #fff;
+    margin-bottom: 10px;
+    color: #e7edf4;
   }
 
-  .feature-text {
-    color: #94a3b8;
+  .quality-text {
+    color: #8b949e;
     font-size: 14px;
     line-height: 1.6;
   }
 
   /* Pricing Section */
   .pricing-section {
-    background: linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, 0.05) 100%);
+    background: linear-gradient(180deg, rgba(34, 197, 94, 0.03) 0%, transparent 100%);
   }
 
   .pricing-grid {
@@ -555,7 +666,7 @@
   }
 
   .pricing-card {
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 20px;
     padding: 40px;
@@ -564,12 +675,12 @@
   }
 
   .pricing-card:hover {
-    border-color: rgba(0, 255, 136, 0.3);
+    border-color: rgba(34, 197, 94, 0.3);
   }
 
   .pricing-card.popular {
-    border-color: #00ff88;
-    background: rgba(0, 255, 136, 0.05);
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.05);
   }
 
   .pricing-badge {
@@ -577,18 +688,21 @@
     top: -12px;
     left: 50%;
     transform: translateX(-50%);
-    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-    color: #0a0a0f !important;
+    background: #22c55e;
+    color: #0f1419 !important;
     padding: 6px 16px;
     border-radius: 100px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .pricing-name {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
     margin-bottom: 8px;
+    color: #e7edf4;
   }
 
   .pricing-price {
@@ -600,19 +714,19 @@
 
   .pricing-amount {
     font-size: 48px;
-    font-weight: 800;
+    font-weight: 700;
     color: #fff;
   }
 
   .pricing-period {
-    color: #64748b;
-    font-size: 16px;
+    color: #6e7681;
+    font-size: 15px;
   }
 
   .pricing-pitch {
-    color: #94a3b8;
+    color: #8b949e;
     font-size: 14px;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
   }
 
   .pricing-features {
@@ -623,17 +737,19 @@
 
   .pricing-features li {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
-    padding: 8px 0;
-    color: #94a3b8;
+    padding: 10px 0;
+    color: #8b949e;
     font-size: 14px;
+    line-height: 1.4;
   }
 
   .pricing-features li::before {
     content: '✓';
-    color: #00ff88;
+    color: #22c55e;
     font-weight: 700;
+    flex-shrink: 0;
   }
 
   .pricing-cta {
@@ -644,41 +760,46 @@
     border-radius: 10px;
     font-weight: 600;
     text-decoration: none;
-    transition: all 0.3s;
+    transition: all 0.2s;
   }
 
   .pricing-card.popular .pricing-cta {
-    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-    color: #0a0a0f !important;
+    background: #22c55e;
+    color: #0f1419 !important;
+  }
+
+  .pricing-card.popular .pricing-cta:hover {
+    background: #16a34a;
   }
 
   .pricing-card:not(.popular) .pricing-cta {
-    background: rgba(255,255,255,0.1);
-    color: #fff !important;
+    background: rgba(255,255,255,0.08);
+    color: #e7edf4 !important;
   }
 
-  .pricing-cta:hover {
-    transform: translateY(-2px);
+  .pricing-card:not(.popular) .pricing-cta:hover {
+    background: rgba(255,255,255,0.12);
   }
 
   /* FAQ Section */
-  .faq-list {
+  .faq-grid {
+    display: grid;
+    gap: 16px;
     max-width: 800px;
     margin: 0 auto;
   }
 
   .faq-item {
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 12px;
-    margin-bottom: 12px;
     overflow: hidden;
   }
 
   .faq-question {
     padding: 24px;
     font-weight: 600;
-    cursor: pointer;
+    font-size: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -686,24 +807,34 @@
 
   .faq-answer {
     padding: 0 24px 24px;
-    color: #94a3b8;
+    color: #8b949e;
     line-height: 1.7;
+    font-size: 14px;
   }
 
-  .faq-answer code {
-    background: rgba(0, 255, 136, 0.1);
-    color: #00ff88;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+  /* Final CTA Section */
+  .final-cta-section {
+    text-align: center;
+    padding: 100px 24px 120px;
+    background: linear-gradient(180deg, transparent 0%, rgba(34, 197, 94, 0.05) 100%);
+  }
+
+  .final-cta-section h2 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .final-cta-section p {
+    color: #8b949e;
+    font-size: 18px;
+    margin-bottom: 32px;
   }
 
   /* Footer */
   .landing-footer {
-    border-top: 1px solid rgba(255,255,255,0.05);
-    padding: 40px 24px;
-    text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 32px 24px;
   }
 
   .footer-content {
@@ -720,33 +851,35 @@
   }
 
   .footer-links a {
-    color: #64748b;
+    color: #6e7681;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13px;
+    transition: color 0.2s;
   }
 
-  .footer-links a:hover { color: #fff; }
+  .footer-links a:hover { color: #e7edf4; }
 
   .footer-copy {
-    color: #64748b;
-    font-size: 14px;
+    color: #6e7681;
+    font-size: 13px;
   }
 
   /* Responsive */
   @media (max-width: 1024px) {
-    .hero-content { grid-template-columns: 1fr; text-align: center; }
+    .hero-container { grid-template-columns: 1fr; }
     .hero-visual { display: none; }
-    .hero-cta { justify-content: center; }
     .hero-text h1 { font-size: 40px; }
+    .hero-workflow { flex-wrap: wrap; }
   }
 
   @media (max-width: 768px) {
     .nav-links { display: none; }
-    .problem-solution { grid-template-columns: 1fr; }
-    .byok-grid { grid-template-columns: 1fr; }
-    .features-grid { grid-template-columns: 1fr; }
+    .journey-grid { grid-template-columns: 1fr; }
+    .team-grid { grid-template-columns: 1fr; }
+    .quality-grid { grid-template-columns: 1fr; }
     .pricing-grid { grid-template-columns: 1fr; }
-    .footer-content { flex-direction: column; gap: 16px; }
+    .footer-content { flex-direction: column; gap: 16px; text-align: center; }
+    .footer-links { flex-wrap: wrap; justify-content: center; }
   }
 </style>
 
@@ -755,14 +888,15 @@
   <header class="landing-header">
     <nav>
       <a href="/" class="logo">
-        <div class="logo-icon">⚡</div>
+        <div class="logo-icon">✓</div>
         OpenTasks
+        <div class="logo-status"></div>
       </a>
       
       <div class="nav-links">
+        <a href="#workflow">Workflow</a>
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
-        <a href="#faq">FAQ</a>
         <a href="/docs">Docs</a>
       </div>
       
@@ -775,27 +909,28 @@
 
   <!-- Hero Section -->
   <section class="hero-section">
-    <div class="hero-content">
+    <div class="hero-container">
       <div class="hero-text">
-        <h1 class="animate-fade-in">
-          The Kanban Board that<br><span>Writes Code.</span>
+        <h1 class="animate-slide-in">
+          Turn Tickets into<br><span>Pull Requests.</span>
         </h1>
         
-        <p class="hero-subtitle animate-fade-in animate-delay-1">
-          Manage tasks, drag to "AI Agent", and get a Pull Request.<br>
-          Powered by the Cursor Agent you already trust.
+        <p class="hero-subtitle animate-slide-in delay-1">
+          The first collaborative Kanban board where your specs become code. 
+          Stop context-switching between your project board and your IDE.
         </p>
         
-        <div class="hero-price animate-fade-in animate-delay-2">
-          <span class="price">5€</span>
-          <span class="period">/ month</span>
-          <span style="color: #64748b; font-size: 13px;">• Bring your own Cursor API key</span>
+        <div class="hero-workflow animate-slide-in delay-2">
+          <span class="workflow-step">📋 Plan with your team</span>
+          <span class="workflow-arrow">→</span>
+          <span class="workflow-step">🤖 Drag to Agent</span>
+          <span class="workflow-arrow">→</span>
+          <span class="workflow-step">✅ Review the PR</span>
         </div>
         
-        <div class="hero-cta animate-fade-in animate-delay-3">
+        <div class="hero-cta animate-slide-in delay-3">
           <a href="/register" class="btn-cta">
-            Start Building
-            <span class="badge">29€/year — Save 50%</span>
+            Start Shipping Faster
           </a>
           <a href="/docs" class="btn-secondary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -804,184 +939,193 @@
             Documentation
           </a>
         </div>
+        
+        <div class="hero-meta animate-slide-in delay-4">
+          <span>💰 From 5€/month</span>
+          <span>🔒 Your keys, your control</span>
+          <span>⚡ Set up in 2 minutes</span>
+        </div>
       </div>
       
-      <!-- Visual: Split Screen -->
-      <div class="hero-visual animate-fade-in animate-delay-4">
-        <div class="visual-kanban">
-          <div class="visual-header">
-            <div class="visual-dot red"></div>
-            <div class="visual-dot yellow"></div>
-            <div class="visual-dot green"></div>
-            <span class="visual-title">Kanban Board</span>
-          </div>
-          <div class="kanban-mini">
-            <div class="kanban-column">
-              <div class="kanban-column-title">Todo</div>
-              <div class="kanban-card">Add auth flow</div>
-              <div class="kanban-card">Fix nav bug</div>
+      <!-- Hero Visual: Kanban Demo -->
+      <div class="hero-visual animate-slide-in delay-4">
+        <div class="visual-header">
+          <div class="visual-dot red"></div>
+          <div class="visual-dot yellow"></div>
+          <div class="visual-dot green"></div>
+          <span class="visual-title">
+            <span class="status-dot"></span>
+            Agent Active
+          </span>
+        </div>
+        
+        <div class="kanban-demo">
+          <div class="demo-column">
+            <div class="demo-column-header">
+              <span class="demo-column-title">Todo</span>
+              <span class="demo-column-count">2</span>
             </div>
-            <div class="kanban-column">
-              <div class="kanban-column-title">🤖 Agent</div>
-              <div class="kanban-card active">
-                ⚡ API endpoints
+            <div class="demo-card">
+              <div class="demo-card-title">Add user auth flow</div>
+              <div class="demo-card-meta">
+                <span class="demo-card-tag feature">feature</span>
+                <span>2 hrs ago</span>
               </div>
             </div>
-            <div class="kanban-column">
-              <div class="kanban-column-title">Done</div>
-              <div class="kanban-card">Setup DB ✓</div>
+            <div class="demo-card">
+              <div class="demo-card-title">Fix navigation bug</div>
+              <div class="demo-card-meta">
+                <span class="demo-card-tag feature">bug</span>
+                <span>5 hrs ago</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="demo-column">
+            <div class="demo-column-header">
+              <span class="demo-column-title">🤖 Agent</span>
+              <span class="demo-column-count">1</span>
+            </div>
+            <div class="demo-card processing">
+              <div class="demo-card-title">Create REST API endpoints</div>
+              <div class="demo-card-meta">
+                <span class="demo-card-tag agent">processing</span>
+                <span>Just now</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="demo-column">
+            <div class="demo-column-header">
+              <span class="demo-column-title">Done</span>
+              <span class="demo-column-count">1</span>
+            </div>
+            <div class="demo-card success">
+              <div class="demo-card-title">Setup database schema</div>
+              <div class="demo-card-meta">
+                <span class="demo-card-tag done">PR #103</span>
+                <span>1 hr ago</span>
+              </div>
             </div>
           </div>
         </div>
         
-        <div class="visual-terminal">
-          <div class="visual-header">
-            <div class="visual-dot red"></div>
-            <div class="visual-dot yellow"></div>
-            <div class="visual-dot green"></div>
-            <span class="visual-title">Agent Logs</span>
-          </div>
-          <div class="terminal-content">
-            <div class="terminal-line">
-              <span class="terminal-prompt">→</span>
-              <span class="terminal-command">Analyzing codebase...</span>
-            </div>
-            <div class="terminal-line">
-              <span class="terminal-output">  Found 24 files</span>
-            </div>
-            <div class="terminal-line">
-              <span class="terminal-prompt">→</span>
-              <span class="terminal-command">Creating endpoints...</span>
-            </div>
-            <div class="terminal-line">
-              <span class="terminal-success">✓ src/api/users.ts</span>
-            </div>
-            <div class="terminal-line">
-              <span class="terminal-success">✓ src/api/auth.ts</span>
-            </div>
-            <div class="terminal-line">
-              <span class="terminal-prompt">→</span>
-              <span class="terminal-command">Opening PR...</span>
-              <span class="terminal-cursor"></span>
-            </div>
-          </div>
+        <div class="demo-toast">
+          ✓ PR #104 Created by Cursor Agent
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Problem / Solution Section -->
-  <section class="section" id="why">
+  <!-- Developer Journey Section -->
+  <section class="section journey-section" id="workflow">
     <div class="section-container">
       <div class="section-header">
-        <h2>Why <span class="neon-green">OpenTasks</span>?</h2>
+        <div class="section-label">The Developer Journey</div>
+        <h2>From Ticket to PR, Automatically</h2>
+        <p>Your project management tool should do more than just stare at you.</p>
       </div>
       
-      <div class="problem-solution">
-        <div class="problem-card">
-          <div class="card-icon">😩</div>
-          <h3 class="card-title">The Problem</h3>
-          <p class="card-text">
-            Jira is slow. Linear doesn't write code. And copy-pasting tickets into Cursor is tedious. 
-            You're wasting time on workflow, not shipping features.
+      <div class="journey-grid">
+        <div class="journey-card friction">
+          <div class="journey-icon">😤</div>
+          <h3 class="journey-title">The Current Friction</h3>
+          <p class="journey-text">
+            In traditional tools (Jira, Linear), a ticket is just text. You have to read it, 
+            understand it, open your editor, find the files, and start typing. It's a disconnect 
+            between planning and doing.
           </p>
         </div>
         
-        <div class="solution-card">
-          <div class="card-icon">🚀</div>
-          <h3 class="card-title">The Solution</h3>
-          <p class="card-text">
-            OpenTasks is the missing bridge. We provide the architecture (Queues, Webhooks, PR Management), 
-            you provide the intelligence (Your Cursor API Key).
+        <div class="journey-card solution">
+          <div class="journey-icon">🚀</div>
+          <h3 class="journey-title">The OpenTasks Flow</h3>
+          <p class="journey-text">
+            Here, the ticket is the instruction. By the time you open your coffee, the boilerplate 
+            is written, the branch is created, and the initial implementation is waiting for your review.
           </p>
         </div>
+      </div>
+      
+      <div class="journey-benefit">
+        <div class="journey-benefit-title">💡 Stay in the Flow State</div>
+        <p class="journey-benefit-text">
+          Let the Agent handle the implementation details while you handle the architecture. 
+          Review PRs instead of writing boilerplate. Ship features instead of setting up files.
+        </p>
       </div>
     </div>
   </section>
 
-  <!-- BYOK Advantage Section -->
-  <section class="section byok-section">
-    <div class="section-container">
-      <div class="section-header">
-        <h2>The <span class="neon-blue">BYOK</span> Advantage</h2>
-        <p>Bring Your Own Key. We don't markup AI costs. Pure transparency.</p>
-      </div>
-      
-      <div class="byok-grid">
-        <div class="byok-card">
-          <div class="byok-icon">🔒</div>
-          <h3 class="byok-title">Privacy First</h3>
-          <p class="byok-text">
-            Your Cursor API Key never leaves your project scope. Encrypted with AES-256 at rest.
-          </p>
-        </div>
-        
-        <div class="byok-card">
-          <div class="byok-icon">🎛️</div>
-          <h3 class="byok-title">Full Control</h3>
-          <p class="byok-text">
-            You keep your own usage limits. No hidden caps from us. Your Cursor, your rules.
-          </p>
-        </div>
-        
-        <div class="byok-card">
-          <div class="byok-icon">💸</div>
-          <h3 class="byok-title">Lowest Cost</h3>
-          <p class="byok-text">
-            We don't mark up AI costs. You pay us for the tool, Cursor usage is between you and them.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features Section -->
+  <!-- Team Features Section -->
   <section class="section" id="features">
     <div class="section-container">
       <div class="section-header">
-        <h2>Built for <span class="neon-purple">Developers</span></h2>
-        <p>Everything you need to ship faster with AI-powered automation.</p>
+        <div class="section-label">Team Collaboration</div>
+        <h2>Built for Product-Focused Teams</h2>
+        <p>Real-time collaboration that keeps everyone aligned.</p>
       </div>
       
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">🌿</div>
-          <div>
-            <h3 class="feature-title">Multi-Branch Agents</h3>
-            <p class="feature-text">
-              Agent automatically creates a branch <code>feat/ticket-id</code>, pushes code, and links the PR.
-            </p>
-          </div>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-icon">📡</div>
+          <h3 class="team-title">Interactive Kanban</h3>
+          <p class="team-text">
+            Real-time updates. See exactly what your team—and your AI agents—are working on instantly.
+          </p>
         </div>
         
-        <div class="feature-card">
-          <div class="feature-icon">💻</div>
-          <div>
-            <h3 class="feature-title">Terminal Mode</h3>
-            <p class="feature-text">
-              Watch the agent "think" in real-time with live terminal output on the ticket.
-            </p>
-          </div>
+        <div class="team-card">
+          <div class="team-icon">👥</div>
+          <h3 class="team-title">Stakeholder Visibility</h3>
+          <p class="team-text">
+            Give stakeholders a view of progress without explaining technical jargon. They see "Done", you see the code.
+          </p>
         </div>
         
-        <div class="feature-card">
-          <div class="feature-icon">⚡</div>
-          <div>
-            <h3 class="feature-title">MPA Speed</h3>
-            <p class="feature-text">
-              Server-side rendered dashboard. Zero lag. Loads instantly, every time.
-            </p>
-          </div>
+        <div class="team-card">
+          <div class="team-icon">💬</div>
+          <h3 class="team-title">Context-Rich Discussions</h3>
+          <p class="team-text">
+            Comment directly on tickets. The Agent reads the entire thread history to understand refinements.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quality & Control Section -->
+  <section class="section quality-section">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-label">Enterprise-Grade</div>
+        <h2>Privacy & Control</h2>
+        <p>Your data, your limits. We never act as a middleman for your intelligence.</p>
+      </div>
+      
+      <div class="quality-grid">
+        <div class="quality-card">
+          <div class="quality-icon">🔐</div>
+          <h3 class="quality-title">Your Data, Your Limits</h3>
+          <p class="quality-text">
+            Connects directly to your private Cursor environment. Your API usage limits and privacy settings are respected.
+          </p>
         </div>
         
-        <div class="feature-card">
-          <div class="feature-icon">🧠</div>
-          <div>
-            <h3 class="feature-title">Context Aware</h3>
-            <p class="feature-text">
-              The agent reads your repo structure via the Cursor API before writing a single line.
-            </p>
-          </div>
+        <div class="quality-card">
+          <div class="quality-icon">🛡️</div>
+          <h3 class="quality-title">Security First</h3>
+          <p class="quality-text">
+            Your keys are AES-256 encrypted and used only to bridge your board to your codebase. No black boxes.
+          </p>
+        </div>
+        
+        <div class="quality-card">
+          <div class="quality-icon">💎</div>
+          <h3 class="quality-title">No Hidden Fees</h3>
+          <p class="quality-text">
+            We charge for platform excellence. You retain full control over your AI provider relationships.
+          </p>
         </div>
       </div>
     </div>
@@ -991,7 +1135,8 @@
   <section class="section pricing-section" id="pricing">
     <div class="section-container">
       <div class="section-header">
-        <h2>Simple <span class="neon-green">Pricing</span></h2>
+        <div class="section-label">Simple Pricing</div>
+        <h2>Start Shipping Today</h2>
         <p>Less than a Netflix subscription. Cancel anytime.</p>
       </div>
       
@@ -1002,38 +1147,36 @@
             <span class="pricing-amount">5€</span>
             <span class="pricing-period">/ month</span>
           </div>
-          <p class="pricing-pitch">Less than a coffee. Cancel anytime.</p>
+          <p class="pricing-pitch">Flexible access for agile sprints.</p>
           
           <ul class="pricing-features">
-            <li>Unlimited Projects</li>
-            <li>Unlimited Team Members</li>
-            <li>Unlimited Task History</li>
-            <li>Cursor Cloud Bridge</li>
-            <li>Secure Key Storage (BYOK)</li>
+            <li>Unlimited Collaboration — invite your whole team</li>
+            <li>Agent Orchestration — manage queues & retries</li>
+            <li>Live Terminal View — monitor agent in real-time</li>
+            <li>Secure Integration — enterprise-standard encryption</li>
           </ul>
           
           <a href="/register" class="pricing-cta">Get Started</a>
         </div>
         
         <div class="pricing-card popular">
-          <div class="pricing-badge">SAVE 50%</div>
+          <div class="pricing-badge">Best Value</div>
           <h3 class="pricing-name">Yearly</h3>
           <div class="pricing-price">
             <span class="pricing-amount">29€</span>
             <span class="pricing-period">/ year</span>
           </div>
-          <p class="pricing-pitch">The smart choice for long-term builders.</p>
+          <p class="pricing-pitch">The Pro Toolset. Commitment to shipping.</p>
           
           <ul class="pricing-features">
-            <li>Unlimited Projects</li>
-            <li>Unlimited Team Members</li>
-            <li>Unlimited Task History</li>
-            <li>Cursor Cloud Bridge</li>
-            <li>Secure Key Storage (BYOK)</li>
-            <li>Priority Support</li>
+            <li>Unlimited Collaboration — invite your whole team</li>
+            <li>Agent Orchestration — manage queues & retries</li>
+            <li>Live Terminal View — monitor agent in real-time</li>
+            <li>Secure Integration — enterprise-standard encryption</li>
+            <li>Priority Support — faster response times</li>
           </ul>
           
-          <a href="/register" class="pricing-cta">Get Started</a>
+          <a href="/register" class="pricing-cta">Get Started — Save 50%</a>
         </div>
       </div>
     </div>
@@ -1043,47 +1186,41 @@
   <section class="section" id="faq">
     <div class="section-container">
       <div class="section-header">
-        <h2>Frequently Asked <span class="neon-blue">Questions</span></h2>
+        <h2>Frequently Asked Questions</h2>
       </div>
       
-      <div class="faq-list">
+      <div class="faq-grid">
         <div class="faq-item">
-          <div class="faq-question">
-            Why do I need my own Cursor API Key?
-          </div>
+          <div class="faq-question">How does this help my team?</div>
           <div class="faq-answer">
-            To keep OpenTasks at <code>5€/mo</code>. Other tools mark up AI costs to cover their margins. 
-            We charge you strictly for the platform, so you get the lowest possible price.
+            It removes the bottleneck between "deciding what to do" and "starting the work". 
+            Your team stays aligned on the board, while the Agent handles the repetitive coding tasks. 
+            You review PRs instead of writing boilerplate.
           </div>
         </div>
         
         <div class="faq-item">
-          <div class="faq-question">
-            Does this cost extra in Cursor?
-          </div>
+          <div class="faq-question">Is it hard to set up?</div>
           <div class="faq-answer">
-            It uses your existing Cursor API quota/credits. We don't add any fees on top. 
-            Your Cursor usage remains between you and Cursor.
+            No. Connect your GitHub repository, paste your secure Cursor API key, and you're ready 
+            to drag-and-drop tasks to the Agent. Most teams are up and running in under 2 minutes.
           </div>
         </div>
         
         <div class="faq-item">
-          <div class="faq-question">
-            Can I self-host?
-          </div>
+          <div class="faq-question">Why do I need my own Cursor API Key?</div>
           <div class="faq-answer">
-            Yes! Docker containers are available for enterprise licenses. 
-            Contact us at <code>hello@opentasks.fr</code> for details.
+            To keep OpenTasks affordable at 5€/mo. We charge for platform excellence—not AI markup. 
+            You retain full control over your Cursor usage and costs.
           </div>
         </div>
         
         <div class="faq-item">
-          <div class="faq-question">
-            What happens if the AI makes a mistake?
-          </div>
+          <div class="faq-question">What if the AI makes a mistake?</div>
           <div class="faq-answer">
             Every change goes through a Pull Request. You review, refine, and merge when ready. 
-            Nothing touches your main branch without your approval.
+            Nothing touches your main branch without your approval. Think of it as a junior developer 
+            that works 24/7—you just review the PRs.
           </div>
         </div>
       </div>
@@ -1091,18 +1228,10 @@
   </section>
 
   <!-- Final CTA -->
-  <section class="section" style="text-align: center; padding-bottom: 120px;">
-    <div class="section-container">
-      <h2 style="font-size: 36px; font-weight: 700; margin-bottom: 16px;">
-        Ready to ship faster?
-      </h2>
-      <p style="color: #94a3b8; font-size: 18px; margin-bottom: 32px;">
-        Join developers using AI to automate their workflow.
-      </p>
-      <a href="/register" class="btn-cta">
-        Start Building — 29€/year
-      </a>
-    </div>
+  <section class="final-cta-section">
+    <h2>Ready to ship faster?</h2>
+    <p>For 29€/year, get a system that organizes your work and manages a Junior Dev who works 24/7.</p>
+    <a href="/register" class="btn-cta">Start Shipping Faster</a>
   </section>
 
   <!-- Footer -->
@@ -1114,7 +1243,7 @@
         <a href="#faq">FAQ</a>
         <a href="mailto:hello@opentasks.fr">Contact</a>
       </div>
-      <p class="footer-copy">© 2024 OpenTasks • Built for developers, by developers.</p>
+      <p class="footer-copy">© 2024 OpenTasks • Built for product-focused teams.</p>
     </div>
   </footer>
 </div>
