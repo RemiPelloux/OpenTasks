@@ -137,19 +137,14 @@ jobs:
             
             echo "DATABASE_URL is set: ${DATABASE_URL:0:30}..."
             
-            # Install pnpm if not available
-            if ! command -v pnpm &> /dev/null; then
-              echo "Installing pnpm..."
-              npm install -g pnpm
-            fi
-            
-            # Install dependencies and run migration
-            echo "Installing dependencies..."
-            pnpm install --frozen-lockfile 2>/dev/null || pnpm install
-            
+            # Run migration using npx directly (it will download prisma if needed)
             echo "Running prisma db push..."
             cd packages/database
-            npx prisma db push --accept-data-loss --skip-generate
+            npx prisma@5.22.0 db push --accept-data-loss --skip-generate || {
+              echo "⚠️ Migration failed, retrying with fresh install..."
+              npm install prisma@5.22.0 --save-dev
+              npx prisma db push --accept-data-loss --skip-generate
+            }
             
             echo "✅ Database migration completed"
           EOF
