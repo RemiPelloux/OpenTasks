@@ -110,11 +110,42 @@ jobs:
             echo "⏳ Waiting for database to be ready..."
             sleep 10
             
+            echo "🏥 Health check..."
+            curl -sf http://localhost:3005/health/live || echo "Health check failed"
+          EOF
+
+      - name: Run database migrations
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ${{ secrets.SERVER_PATH }}
+            
             echo "📦 Running database migrations..."
-            # Run prisma from node_modules path in the server container
-            docker compose -f docker-compose.server.yml exec -T server sh -c "cd /app/packages/database && node ../../node_modules/.bin/prisma db push --accept-data-loss" || {
-              echo "⚠️ Migration failed but continuing..."
-            }
+            # Install dependencies and run prisma from host (not inside Docker)
+            # This ensures prisma CLI is available
+            export DATABASE_URL=$(grep DATABASE_URL .env | cut -d '=' -f2-)
+            
+            if [ -z "$DATABASE_URL" ]; then
+              echo "⚠️ DATABASE_URL not found in .env, skipping migrations"
+              exit 0
+            fi
+            
+            # Install pnpm if not available
+            if ! command -v pnpm &> /dev/null; then
+              npm install -g pnpm
+            fi
+            
+            # Install dependencies and run migration
+            pnpm install --frozen-lockfile || pnpm install
+            cd packages/database
+            npx prisma db push --accept-data-loss
+            
+            echo "✅ Database migration completed"
+          EOF
+
+      - name: Restart services after migration
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ${{ secrets.SERVER_PATH }}
             
             echo "🔄 Restarting services after migration..."
             docker compose -f docker-compose.server.yml restart server worker
@@ -122,7 +153,7 @@ jobs:
             echo "⏳ Waiting for services to stabilize..."
             sleep 10
             
-            echo "🏥 Health check..."
+            echo "🏥 Final health check..."
             curl -sf http://localhost:3005/health/live || echo "Health check failed"
           EOF
 
