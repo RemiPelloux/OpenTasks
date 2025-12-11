@@ -42,6 +42,10 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
   const hasCompleted = ticket.status === 'TO_REVIEW' && ticket.prLink;
   const hasError = ticket.aiSummary?.includes('failed') || ticket.aiSummary?.includes('Error');
 
+  // Check if ticket has existing work (branch or PR)
+  const hasExistingWork = ticket.prLink || ticket.agentBranch || ticket.agentId;
+  const wasProcessedBefore = hasExistingWork && (ticket.status === 'TODO' || ticket.status === 'BACKLOG');
+
   // Determine card variant class
   const getCardClass = () => {
     const classes = ['ticket-card'];
@@ -50,6 +54,7 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
     if (ticket.status === 'AI_PROCESSING') classes.push('ai-processing');
     if (ticket.status === 'HANDLE') classes.push('queued');
     if (hasError) classes.push('has-error');
+    if (wasProcessedBefore) classes.push('was-processed');
     return classes.join(' ');
   };
 
@@ -119,6 +124,25 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
         )}
       </div>
 
+      {/* Previously Processed Indicator */}
+      {wasProcessedBefore && (
+        <div className="ticket-processed-badge" title="This ticket was previously processed by AI">
+          <RetryIcon />
+          <span>Previously processed</span>
+          {ticket.prLink && (
+            <a 
+              href={ticket.prLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="processed-pr-link"
+            >
+              View PR
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Footer Row - Always visible */}
       <div className="ticket-footer">
         <div className="ticket-footer-left">
@@ -127,13 +151,16 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
             {priorityConfig[ticket.priority].label}
           </span>
           
-          {/* Branch Badge */}
-          {ticket.targetBranch && (
-            <span className="ticket-branch-badge" title={ticket.targetBranch}>
+          {/* Branch Badge - Show agent branch if exists, otherwise target branch */}
+          {(ticket.agentBranch || ticket.targetBranch) && (
+            <span 
+              className={`ticket-branch-badge ${ticket.agentBranch ? 'has-agent-branch' : ''}`} 
+              title={ticket.agentBranch || ticket.targetBranch || ''}
+            >
               <BranchIcon />
-              {ticket.targetBranch.length > 12 
-                ? ticket.targetBranch.slice(0, 12) + '...' 
-                : ticket.targetBranch}
+              {(ticket.agentBranch || ticket.targetBranch || '').length > 12 
+                ? (ticket.agentBranch || ticket.targetBranch || '').slice(0, 12) + '...' 
+                : (ticket.agentBranch || ticket.targetBranch)}
             </span>
           )}
         </div>
@@ -142,10 +169,14 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
           {/* Ticket ID */}
           <span className="ticket-id">#{ticket.id.slice(-4)}</span>
           
-          {/* Assignee or AI Icon */}
+          {/* Status indicators */}
           {isProcessing ? (
-            <div className="ticket-ai-avatar" title="AI Agent">
+            <div className="ticket-ai-avatar" title="AI Agent Processing">
               <RobotIcon />
+            </div>
+          ) : hasExistingWork && !wasProcessedBefore ? (
+            <div className="ticket-has-work" title="Has existing work">
+              <CheckBadgeIcon />
             </div>
           ) : ticket.assignee ? (
             <div className="ticket-assignee" title={ticket.assignee.name}>
@@ -264,6 +295,26 @@ function ErrorIcon() {
       <circle cx="12" cy="12" r="10" />
       <line x1="12" x2="12" y1="8" y2="12" />
       <line x1="12" x2="12.01" y1="16" y2="16" />
+    </svg>
+  );
+}
+
+function RetryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="icon-xs">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
+    </svg>
+  );
+}
+
+function CheckBadgeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="icon-sm">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   );
 }

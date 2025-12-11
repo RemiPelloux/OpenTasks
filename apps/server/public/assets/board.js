@@ -24,6 +24,8 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
   const isProcessing = ticket.status === "HANDLE" || ticket.status === "AI_PROCESSING";
   const hasCompleted = ticket.status === "TO_REVIEW" && ticket.prLink;
   const hasError = ((_a = ticket.aiSummary) == null ? void 0 : _a.includes("failed")) || ((_b = ticket.aiSummary) == null ? void 0 : _b.includes("Error"));
+  const hasExistingWork = ticket.prLink || ticket.agentBranch || ticket.agentId;
+  const wasProcessedBefore = hasExistingWork && (ticket.status === "TODO" || ticket.status === "BACKLOG");
   const getCardClass = () => {
     const classes = ["ticket-card"];
     if (isDragging || isSortableDragging) classes.push("dragging");
@@ -31,6 +33,7 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
     if (ticket.status === "AI_PROCESSING") classes.push("ai-processing");
     if (ticket.status === "HANDLE") classes.push("queued");
     if (hasError) classes.push("has-error");
+    if (wasProcessedBefore) classes.push("was-processed");
     return classes.join(" ");
   };
   const truncate = (text, maxLines = 2) => {
@@ -77,20 +80,42 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: truncate(ticket.aiSummary, 2) })
           ] })
         ] }),
+        wasProcessedBefore && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-processed-badge", title: "This ticket was previously processed by AI", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(RetryIcon, {}),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Previously processed" }),
+          ticket.prLink && /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "a",
+            {
+              href: ticket.prLink,
+              target: "_blank",
+              rel: "noopener noreferrer",
+              onClick: (e) => e.stopPropagation(),
+              className: "processed-pr-link",
+              children: "View PR"
+            }
+          )
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer-left", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ticket-priority-pill ${priorityConfig[ticket.priority].class}`, children: priorityConfig[ticket.priority].label }),
-            ticket.targetBranch && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ticket-branch-badge", title: ticket.targetBranch, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(BranchIcon, {}),
-              ticket.targetBranch.length > 12 ? ticket.targetBranch.slice(0, 12) + "..." : ticket.targetBranch
-            ] })
+            (ticket.agentBranch || ticket.targetBranch) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "span",
+              {
+                className: `ticket-branch-badge ${ticket.agentBranch ? "has-agent-branch" : ""}`,
+                title: ticket.agentBranch || ticket.targetBranch || "",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(BranchIcon, {}),
+                  (ticket.agentBranch || ticket.targetBranch || "").length > 12 ? (ticket.agentBranch || ticket.targetBranch || "").slice(0, 12) + "..." : ticket.agentBranch || ticket.targetBranch
+                ]
+              }
+            )
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer-right", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ticket-id", children: [
               "#",
               ticket.id.slice(-4)
             ] }),
-            isProcessing ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-ai-avatar", title: "AI Agent", children: /* @__PURE__ */ jsxRuntimeExports.jsx(RobotIcon, {}) }) : ticket.assignee ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-assignee", title: ticket.assignee.name, children: ticket.assignee.name.substring(0, 2).toUpperCase() }) : null
+            isProcessing ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-ai-avatar", title: "AI Agent Processing", children: /* @__PURE__ */ jsxRuntimeExports.jsx(RobotIcon, {}) }) : hasExistingWork && !wasProcessedBefore ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-has-work", title: "Has existing work", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CheckBadgeIcon, {}) }) : ticket.assignee ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-assignee", title: ticket.assignee.name, children: ticket.assignee.name.substring(0, 2).toUpperCase() }) : null
           ] })
         ] }),
         !isProcessing && ticket.status === "DONE" && onArchive && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-actions", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -172,6 +197,20 @@ function ErrorIcon() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", x2: "12", y1: "8", y2: "12" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", x2: "12.01", y1: "16", y2: "16" })
+  ] });
+}
+function RetryIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-xs", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M21 3v5h-5" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 16H3v5" })
+  ] });
+}
+function CheckBadgeIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-sm", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M22 11.08V12a10 10 0 1 1-5.93-9.14" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "22 4 12 14.01 9 11.01" })
   ] });
 }
 const columnConfig = {
