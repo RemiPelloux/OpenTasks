@@ -36,12 +36,6 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
     if (wasProcessedBefore) classes.push("was-processed");
     return classes.join(" ");
   };
-  const truncate = (text, maxLines = 2) => {
-    if (!text) return null;
-    const lines = text.split("\n").slice(0, maxLines);
-    const truncated = lines.join("\n");
-    return truncated.length < text.length ? `${truncated.slice(0, 100)}...` : truncated;
-  };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
@@ -57,8 +51,15 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-thinking-indicator", title: "AI is working...", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThinkingIcon, {}) })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-content", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "ticket-title", children: ticket.title }),
-          ticket.description && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "ticket-description", children: truncate(ticket.description, 2) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-header", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "ticket-title", children: ticket.title }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ticket-priority-pill ${priorityConfig[ticket.priority].class}`, children: priorityConfig[ticket.priority].label }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ticket-id", children: [
+              "#",
+              ticket.id.slice(-4)
+            ] })
+          ] }),
+          ticket.description && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "ticket-description", children: ticket.description }),
           isProcessing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-ai-badge", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(TerminalIcon, {}),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.status === "HANDLE" ? "Queued" : "Processing..." }),
@@ -66,7 +67,7 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
           ] }),
           ticket.aiSummary && !isProcessing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `ticket-ai-summary ${hasError ? "error" : ""}`, children: [
             hasError ? /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorIcon, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(AIIcon, {}),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: truncate(ticket.aiSummary, 3) })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.aiSummary })
           ] })
         ] }),
         wasProcessedBefore && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-processed-badge", title: "This ticket was previously processed by AI", children: [
@@ -85,25 +86,18 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
           )
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer-left", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ticket-priority-pill ${priorityConfig[ticket.priority].class}`, children: priorityConfig[ticket.priority].label }),
-            (ticket.agentBranch || ticket.targetBranch) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "span",
-              {
-                className: `ticket-branch-badge ${ticket.agentBranch ? "has-agent-branch" : ""}`,
-                title: ticket.agentBranch || ticket.targetBranch || "",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(BranchIcon, {}),
-                  (ticket.agentBranch || ticket.targetBranch || "").length > 12 ? (ticket.agentBranch || ticket.targetBranch || "").slice(0, 12) + "..." : ticket.agentBranch || ticket.targetBranch
-                ]
-              }
-            )
-          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-footer-left", children: (ticket.agentBranch || ticket.targetBranch) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "span",
+            {
+              className: `ticket-branch-badge ${ticket.agentBranch ? "has-agent-branch" : ""}`,
+              title: ticket.agentBranch || ticket.targetBranch || "",
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(BranchIcon, {}),
+                (ticket.agentBranch || ticket.targetBranch || "").length > 18 ? (ticket.agentBranch || ticket.targetBranch || "").slice(0, 18) + "..." : ticket.agentBranch || ticket.targetBranch
+              ]
+            }
+          ) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer-right", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ticket-id", children: [
-              "#",
-              ticket.id.slice(-4)
-            ] }),
             ticket.prLink && /* @__PURE__ */ jsxRuntimeExports.jsx(
               "a",
               {

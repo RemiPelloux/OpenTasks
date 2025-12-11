@@ -89,12 +89,18 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
 
       {/* Card Content */}
       <div className="ticket-content">
-        {/* Title - Bold and prominent */}
-        <h4 className="ticket-title">{ticket.title}</h4>
+        {/* Header Row: Title + Priority + ID */}
+        <div className="ticket-header">
+          <h4 className="ticket-title">{ticket.title}</h4>
+          <span className={`ticket-priority-pill ${priorityConfig[ticket.priority].class}`}>
+            {priorityConfig[ticket.priority].label}
+          </span>
+          <span className="ticket-id">#{ticket.id.slice(-4)}</span>
+        </div>
 
-        {/* Description - Truncated to 2 lines, gray */}
+        {/* Description */}
         {ticket.description && (
-          <p className="ticket-description">{truncate(ticket.description, 2)}</p>
+          <p className="ticket-description">{ticket.description}</p>
         )}
 
         {/* AI Status - Compact display */}
@@ -106,11 +112,11 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
           </div>
         )}
 
-        {/* AI Summary - Truncated to 3 lines max */}
+        {/* AI Summary - Full text, no truncation */}
         {ticket.aiSummary && !isProcessing && (
           <div className={`ticket-ai-summary ${hasError ? 'error' : ''}`}>
             {hasError ? <ErrorIcon /> : <AIIcon />}
-            <span>{truncate(ticket.aiSummary, 3)}</span>
+            <span>{ticket.aiSummary}</span>
           </div>
         )}
       </div>
@@ -134,32 +140,24 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
         </div>
       )}
 
-      {/* Footer Row - Always visible */}
+      {/* Footer Row - Branch + Assignee/PR/Status */}
       <div className="ticket-footer">
         <div className="ticket-footer-left">
-          {/* Priority Badge - Pill shape */}
-          <span className={`ticket-priority-pill ${priorityConfig[ticket.priority].class}`}>
-            {priorityConfig[ticket.priority].label}
-          </span>
-          
-          {/* Branch Badge - Show agent branch if exists, otherwise target branch */}
+          {/* Branch Badge */}
           {(ticket.agentBranch || ticket.targetBranch) && (
             <span 
               className={`ticket-branch-badge ${ticket.agentBranch ? 'has-agent-branch' : ''}`} 
               title={ticket.agentBranch || ticket.targetBranch || ''}
             >
               <BranchIcon />
-              {(ticket.agentBranch || ticket.targetBranch || '').length > 12 
-                ? (ticket.agentBranch || ticket.targetBranch || '').slice(0, 12) + '...' 
+              {(ticket.agentBranch || ticket.targetBranch || '').length > 18 
+                ? (ticket.agentBranch || ticket.targetBranch || '').slice(0, 18) + '...' 
                 : (ticket.agentBranch || ticket.targetBranch)}
             </span>
           )}
         </div>
 
         <div className="ticket-footer-right">
-          {/* Ticket ID */}
-          <span className="ticket-id">#{ticket.id.slice(-4)}</span>
-          
           {/* PR Icon Button */}
           {ticket.prLink && (
             <a
