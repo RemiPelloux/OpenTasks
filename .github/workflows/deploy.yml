@@ -121,30 +121,29 @@ jobs:
             
             echo "📦 Running database migrations..."
             
-            # Source the .env file to get DATABASE_URL
+            # Source the .env file to get environment variables
             if [ -f .env ]; then
               set -a
               source .env
               set +a
             fi
             
-            # Check if DATABASE_URL is set
-            if [ -z "$DATABASE_URL" ]; then
-              # Try to get DATABASE_URL from docker-compose
-              echo "Getting DATABASE_URL from docker-compose..."
-              export DATABASE_URL="postgresql://opentasks:opentasks_secret@localhost:5432/opentasks?schema=public"
+            # Build DATABASE_URL for host access (port 5434 exposed to host)
+            # Inside Docker containers it's port 5432, but from host it's 5434
+            if [ -n "$DB_PASSWORD" ]; then
+              export DATABASE_URL="postgresql://opentasks:${DB_PASSWORD}@localhost:5434/opentasks?schema=public"
+              echo "DATABASE_URL built from DB_PASSWORD"
+            else
+              echo "⚠️ DB_PASSWORD not found in .env, skipping migrations"
+              exit 0
             fi
             
-            echo "DATABASE_URL is set: ${DATABASE_URL:0:30}..."
+            echo "DATABASE_URL is set: ${DATABASE_URL:0:40}..."
             
             # Run migration using npx directly (it will download prisma if needed)
             echo "Running prisma db push..."
             cd packages/database
-            npx prisma@5.22.0 db push --accept-data-loss --skip-generate || {
-              echo "⚠️ Migration failed, retrying with fresh install..."
-              npm install prisma@5.22.0 --save-dev
-              npx prisma db push --accept-data-loss --skip-generate
-            }
+            npx prisma@5.22.0 db push --accept-data-loss --skip-generate
             
             echo "✅ Database migration completed"
           EOF
