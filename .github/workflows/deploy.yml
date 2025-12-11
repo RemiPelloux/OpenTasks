@@ -120,24 +120,36 @@ jobs:
             cd ${{ secrets.SERVER_PATH }}
             
             echo "📦 Running database migrations..."
-            # Install dependencies and run prisma from host (not inside Docker)
-            # This ensures prisma CLI is available
-            export DATABASE_URL=$(grep DATABASE_URL .env | cut -d '=' -f2-)
             
-            if [ -z "$DATABASE_URL" ]; then
-              echo "⚠️ DATABASE_URL not found in .env, skipping migrations"
-              exit 0
+            # Source the .env file to get DATABASE_URL
+            if [ -f .env ]; then
+              set -a
+              source .env
+              set +a
             fi
+            
+            # Check if DATABASE_URL is set
+            if [ -z "$DATABASE_URL" ]; then
+              # Try to get DATABASE_URL from docker-compose
+              echo "Getting DATABASE_URL from docker-compose..."
+              export DATABASE_URL="postgresql://opentasks:opentasks_secret@localhost:5432/opentasks?schema=public"
+            fi
+            
+            echo "DATABASE_URL is set: ${DATABASE_URL:0:30}..."
             
             # Install pnpm if not available
             if ! command -v pnpm &> /dev/null; then
+              echo "Installing pnpm..."
               npm install -g pnpm
             fi
             
             # Install dependencies and run migration
-            pnpm install --frozen-lockfile || pnpm install
+            echo "Installing dependencies..."
+            pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+            
+            echo "Running prisma db push..."
             cd packages/database
-            npx prisma db push --accept-data-loss
+            npx prisma db push --accept-data-loss --skip-generate
             
             echo "✅ Database migration completed"
           EOF
