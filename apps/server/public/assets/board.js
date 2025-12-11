@@ -1,13 +1,14 @@
 import { j as jsxRuntimeExports, r as reactExports, c as client, R as React } from "./vendor-react-ChslnFbV.js";
 import { u as useSortable, C as CSS, a as useDroppable, S as SortableContext, v as verticalListSortingStrategy, b as useSensors, c as useSensor, D as DndContext, d as closestCorners, e as DragOverlay, s as sortableKeyboardCoordinates, K as KeyboardSensor, P as PointerSensor } from "./vendor-dnd-a2WmNMbK.js";
 import { l as lookup } from "./vendor-socket-YoIvxLmZ.js";
-const priorityClasses = {
-  LOW: "priority-low",
-  MEDIUM: "priority-medium",
-  HIGH: "priority-high",
-  URGENT: "priority-urgent"
+const priorityConfig = {
+  LOW: { class: "priority-low", label: "Low", color: "slate" },
+  MEDIUM: { class: "priority-medium", label: "Medium", color: "blue" },
+  HIGH: { class: "priority-high", label: "High", color: "amber" },
+  URGENT: { class: "priority-urgent", label: "Urgent", color: "red" }
 };
 function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }) {
+  var _a, _b;
   const {
     attributes,
     listeners,
@@ -22,174 +23,213 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
   };
   const isProcessing = ticket.status === "HANDLE" || ticket.status === "AI_PROCESSING";
   const hasCompleted = ticket.status === "TO_REVIEW" && ticket.prLink;
+  const hasError = ((_a = ticket.aiSummary) == null ? void 0 : _a.includes("failed")) || ((_b = ticket.aiSummary) == null ? void 0 : _b.includes("Error"));
+  const getCardClass = () => {
+    const classes = ["ticket-card"];
+    if (isDragging || isSortableDragging) classes.push("dragging");
+    if (hasCompleted) classes.push("success-glow");
+    if (ticket.status === "AI_PROCESSING") classes.push("ai-processing");
+    if (ticket.status === "HANDLE") classes.push("queued");
+    if (hasError) classes.push("has-error");
+    return classes.join(" ");
+  };
+  const truncate = (text, maxLines = 2) => {
+    if (!text) return null;
+    const lines = text.split("\n").slice(0, maxLines);
+    const truncated = lines.join("\n");
+    return truncated.length < text.length ? `${truncated.slice(0, 100)}...` : truncated;
+  };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
       ref: setNodeRef,
       style,
-      className: `ticket-card ${isDragging || isSortableDragging ? "dragging" : ""} ${hasCompleted ? "success-glow" : ""}`,
+      className: getCardClass(),
       onClick,
       ...attributes,
       ...listeners,
       children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "ticket-title", children: ticket.title }),
-        ticket.description && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "ticket-description", children: ticket.description }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-meta", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ticket-priority ${priorityClasses[ticket.priority]}`, children: ticket.priority }),
-            ticket.targetBranch && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ticket-branch", title: `Target: ${ticket.targetBranch}`, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(BranchIcon, {}),
-              ticket.targetBranch
-            ] })
+        ticket.status === "AI_PROCESSING" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-processing-overlay", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "processing-pulse" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-content", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "ticket-title", children: ticket.title }),
+          ticket.description && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "ticket-description", children: truncate(ticket.description, 2) }),
+          isProcessing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-ai-badge", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(TerminalIcon, {}),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.status === "HANDLE" ? "Queued" : "Processing..." }),
+            ticket.status === "AI_PROCESSING" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mini-spinner" })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-            ticket.assignee && /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "div",
-              {
-                className: "ticket-assignee",
-                title: ticket.assignee.name,
-                children: ticket.assignee.name.substring(0, 2).toUpperCase()
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-muted-foreground", children: [
-              "#",
-              ticket.id.slice(-4)
-            ] })
-          ] })
-        ] }),
-        isProcessing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `ticket-ai-status ${ticket.status === "AI_PROCESSING" ? "processing" : ""}`, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ai-spinner" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.status === "HANDLE" ? "Queued for AI" : "AI Processing..." })
-        ] }),
-        ticket.prLink && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "a",
-          {
-            href: ticket.prLink,
-            target: "_blank",
-            rel: "noopener noreferrer",
-            className: "ticket-pr-link",
-            onClick: (e) => e.stopPropagation(),
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(GitPRIcon, {}),
-              "View Pull Request"
-            ]
-          }
-        ),
-        ticket.aiSummary && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-ai-summary", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "AI Summary:" }),
-          " ",
-          ticket.aiSummary
-        ] }),
-        !isProcessing && (onArchive || onDelete) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-actions", children: [
-          onDelete && /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
+          ticket.prLink && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "a",
             {
-              className: "ticket-action-btn delete",
-              onClick: (e) => {
-                e.stopPropagation();
-                onDelete(ticket);
-              },
-              title: "Delete this ticket",
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(TrashIcon, {})
-            }
-          ),
-          ticket.status === "DONE" && onArchive && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "button",
-            {
-              className: "ticket-action-btn archive",
-              onClick: (e) => {
-                e.stopPropagation();
-                onArchive(ticket);
-              },
-              title: "Archive this ticket",
+              href: ticket.prLink,
+              target: "_blank",
+              rel: "noopener noreferrer",
+              className: "ticket-pr-link",
+              onClick: (e) => e.stopPropagation(),
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(ArchiveIcon, {}),
-                "Archive"
+                /* @__PURE__ */ jsxRuntimeExports.jsx(GitPRIcon, {}),
+                "View PR"
               ]
             }
-          )
-        ] })
+          ),
+          ticket.aiSummary && !isProcessing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `ticket-ai-summary ${hasError ? "error" : ""}`, children: [
+            hasError ? /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorIcon, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(AIIcon, {}),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: truncate(ticket.aiSummary, 2) })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer-left", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ticket-priority-pill ${priorityConfig[ticket.priority].class}`, children: priorityConfig[ticket.priority].label }),
+            ticket.targetBranch && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ticket-branch-badge", title: ticket.targetBranch, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(BranchIcon, {}),
+              ticket.targetBranch.length > 12 ? ticket.targetBranch.slice(0, 12) + "..." : ticket.targetBranch
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer-right", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ticket-id", children: [
+              "#",
+              ticket.id.slice(-4)
+            ] }),
+            isProcessing ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-ai-avatar", title: "AI Agent", children: /* @__PURE__ */ jsxRuntimeExports.jsx(RobotIcon, {}) }) : ticket.assignee ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-assignee", title: ticket.assignee.name, children: ticket.assignee.name.substring(0, 2).toUpperCase() }) : null
+          ] })
+        ] }),
+        !isProcessing && ticket.status === "DONE" && onArchive && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-actions", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            className: "ticket-action-btn archive",
+            onClick: (e) => {
+              e.stopPropagation();
+              onArchive(ticket);
+            },
+            title: "Archive this ticket",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(ArchiveIcon, {}),
+              "Archive"
+            ]
+          }
+        ) }),
+        !isProcessing && onDelete && ticket.status !== "DONE" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            className: "ticket-delete-btn",
+            onClick: (e) => {
+              e.stopPropagation();
+              onDelete(ticket);
+            },
+            title: "Delete",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(TrashIcon, {})
+          }
+        )
       ]
     }
   );
 }
 function TrashIcon() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "svg",
-    {
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: "2",
-      style: { width: "0.875rem", height: "0.875rem" },
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M3 6h18" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" })
-      ]
-    }
-  );
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-sm", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M3 6h18" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" })
+  ] });
 }
 function ArchiveIcon() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "svg",
-    {
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: "2",
-      style: { width: "0.875rem", height: "0.875rem" },
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "2", y: "4", width: "20", height: "5", rx: "2" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M10 13h4" })
-      ]
-    }
-  );
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-sm", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "2", y: "4", width: "20", height: "5", rx: "2" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M10 13h4" })
+  ] });
 }
 function GitPRIcon() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "svg",
-    {
-      viewBox: "0 0 16 16",
-      fill: "currentColor",
-      style: { width: "1rem", height: "1rem" },
-      children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "path",
-        {
-          fillRule: "evenodd",
-          d: "M7.177 3.073L9.573.677A.25.25 0 0110 .854v4.792a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM11 2.5h-1V4h1a1 1 0 011 1v5.628a2.251 2.251 0 101.5 0V5A2.5 2.5 0 0011 2.5zm1 10.25a.75.75 0 111.5 0 .75.75 0 01-1.5 0zM3.75 12a.75.75 0 100 1.5.75.75 0 000-1.5z"
-        }
-      )
-    }
-  );
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { viewBox: "0 0 16 16", fill: "currentColor", className: "icon-sm", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { fillRule: "evenodd", d: "M7.177 3.073L9.573.677A.25.25 0 0110 .854v4.792a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM11 2.5h-1V4h1a1 1 0 011 1v5.628a2.251 2.251 0 101.5 0V5A2.5 2.5 0 0011 2.5zm1 10.25a.75.75 0 111.5 0 .75.75 0 01-1.5 0zM3.75 12a.75.75 0 100 1.5.75.75 0 000-1.5z" }) });
 }
 function BranchIcon() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "svg",
-    {
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: "currentColor",
-      strokeWidth: "2",
-      style: { width: "0.75rem", height: "0.75rem" },
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "6", x2: "6", y1: "3", y2: "15" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "18", cy: "6", r: "3" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "6", cy: "18", r: "3" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 9a9 9 0 0 1-9 9" })
-      ]
-    }
-  );
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-xs", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "6", x2: "6", y1: "3", y2: "15" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "18", cy: "6", r: "3" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "6", cy: "18", r: "3" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M18 9a9 9 0 0 1-9 9" })
+  ] });
 }
-const columnVariants = {
-  BACKLOG: "",
-  TODO: "",
-  HANDLE: "column-handle",
-  AI_PROCESSING: "column-ai-processing",
-  TO_REVIEW: "column-to-review",
-  DONE: "column-done",
-  CANCELLED: ""
+function TerminalIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-xs", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "4 17 10 11 4 5" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", x2: "20", y1: "19", y2: "19" })
+  ] });
+}
+function RobotIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-sm", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "3", y: "11", width: "18", height: "10", rx: "2" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "5", r: "2" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 7v4" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "8", x2: "8", y1: "16", y2: "16" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "16", x2: "16", y1: "16", y2: "16" })
+  ] });
+}
+function AIIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A1.5 1.5 0 0 0 6 14.5 1.5 1.5 0 0 0 7.5 16 1.5 1.5 0 0 0 9 14.5 1.5 1.5 0 0 0 7.5 13m9 0a1.5 1.5 0 0 0-1.5 1.5 1.5 1.5 0 0 0 1.5 1.5 1.5 1.5 0 0 0 1.5-1.5 1.5 1.5 0 0 0-1.5-1.5" }) });
+}
+function ErrorIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-xs", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", x2: "12", y1: "8", y2: "12" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", x2: "12.01", y1: "16", y2: "16" })
+  ] });
+}
+const columnConfig = {
+  BACKLOG: {
+    variant: "",
+    emptyText: "Drop tickets here"
+  },
+  TODO: {
+    variant: "",
+    emptyText: "Drop tickets here"
+  },
+  HANDLE: {
+    variant: "column-handle",
+    emptyText: "Drop here to start Agent",
+    emptySubtext: "AI will process automatically",
+    svgIcon: "robot"
+  },
+  AI_PROCESSING: {
+    variant: "column-ai-processing",
+    emptyText: "AI is working...",
+    emptySubtext: "Tickets appear here while processing",
+    svgIcon: "brain"
+  },
+  TO_REVIEW: {
+    variant: "column-to-review",
+    emptyText: "Drop tickets here",
+    svgIcon: "eye"
+  },
+  DONE: {
+    variant: "column-done",
+    emptyText: "Completed tickets",
+    svgIcon: "check"
+  },
+  CANCELLED: {
+    variant: "",
+    emptyText: "Cancelled tickets"
+  }
+};
+const ColumnIcons = {
+  robot: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "column-icon", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "3", y: "11", width: "18", height: "10", rx: "2" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "5", r: "2" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 7v4" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "8", x2: "8", y1: "16", y2: "16" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "16", x2: "16", y1: "16", y2: "16" })
+  ] }),
+  brain: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "column-icon", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" })
+  ] }),
+  eye: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "column-icon", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "3" })
+  ] }),
+  check: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "column-icon", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M22 11.08V12a10 10 0 1 1-5.93-9.14" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("polyline", { points: "22 4 12 14.01 9 11.01" })
+  ] })
 };
 function Column({
   id,
@@ -202,42 +242,57 @@ function Column({
   onDelete
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      className: `kanban-column ${columnVariants[id]} ${isActive ? "active" : ""}`,
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "column-header", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "column-title", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", role: "img", "aria-label": title, children: icon }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: title })
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "column-count", children: tickets.length })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(SortableContext, { items: tickets.map((t) => t.id), strategy: verticalListSortingStrategy, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
+  const config = columnConfig[id];
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `kanban-column ${config.variant} ${isActive ? "active" : ""}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "column-header", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "column-title", children: [
+        config.svgIcon && ColumnIcons[config.svgIcon] ? ColumnIcons[config.svgIcon] : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "column-emoji", role: "img", "aria-label": title, children: icon }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "column-name", children: title })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "column-count", children: tickets.length })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(SortableContext, { items: tickets.map((t) => t.id), strategy: verticalListSortingStrategy, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        ref: setNodeRef,
+        className: `column-body ${isOver ? "drop-target" : ""}`,
+        children: tickets.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `column-empty ${id === "HANDLE" ? "handle-empty" : ""}`, children: id === "HANDLE" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "empty-chute", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChuteIcon, {}) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "empty-title", children: config.emptyText }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "empty-subtext", children: config.emptySubtext })
+        ] }) : id === "AI_PROCESSING" ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "empty-ai", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrainPulseIcon, {}) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "empty-title", children: config.emptyText }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "empty-subtext", children: config.emptySubtext })
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "empty-icon", children: icon }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "empty-text", children: config.emptyText })
+        ] }) }) : tickets.map((ticket) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          TicketCard,
           {
-            ref: setNodeRef,
-            className: `column-body ${isOver ? "drop-target" : ""}`,
-            children: tickets.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "column-empty", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mb-1 text-lg", children: icon }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Drop tickets here" }),
-              id === "HANDLE" && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs mt-1", children: "AI will process these" })
-            ] }) : tickets.map((ticket) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-              TicketCard,
-              {
-                ticket,
-                onClick: () => onTicketClick(ticket),
-                onArchive,
-                onDelete
-              },
-              ticket.id
-            ))
-          }
-        ) })
-      ]
-    }
-  );
+            ticket,
+            onClick: () => onTicketClick(ticket),
+            onArchive,
+            onDelete
+          },
+          ticket.id
+        ))
+      }
+    ) })
+  ] });
+}
+function ChuteIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", className: "chute-icon", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M12 3v18", strokeDasharray: "3 3" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M5 8l7 7 7-7" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "4", y: "18", width: "16", height: "3", rx: "1" })
+  ] });
+}
+function BrainPulseIcon() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", className: "brain-pulse-icon", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" })
+  ] });
 }
 const PRIORITIES = [
   { value: "LOW", label: "Low", icon: "↓", color: "text-slate-400" },
@@ -714,6 +769,15 @@ function getCsrfToken$3() {
   const meta = document.querySelector('meta[name="csrf-token"]');
   return (meta == null ? void 0 : meta.getAttribute("content")) || "";
 }
+function getCsrfToken$2() {
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  return (meta == null ? void 0 : meta.getAttribute("content")) || "";
+}
+function showToast$2(message, type = "success") {
+  if (typeof window !== "undefined" && window.showToast) {
+    window.showToast(message, type);
+  }
+}
 const STATUS_COLORS = {
   QUEUED: "text-amber-400",
   RUNNING: "text-blue-400",
@@ -774,7 +838,7 @@ function AgentStatusPanel({
         const data = await response.json();
         throw new Error(data.error || "Failed to validate ticket");
       }
-      showToast("Ticket validated and marked as Done!", "success");
+      showToast$2("Ticket validated and marked as Done!", "success");
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
@@ -786,7 +850,7 @@ function AgentStatusPanel({
       console.error("Validate error:", err);
       const errorMsg = err instanceof Error ? err.message : "Failed to validate ticket";
       setError(errorMsg);
-      showToast(errorMsg, "error");
+      showToast$2(errorMsg, "error");
     } finally {
       setIsValidating(false);
       setConfirmAction(null);
@@ -808,7 +872,7 @@ function AgentStatusPanel({
         const data = await response.json();
         throw new Error(data.error || "Failed to stop agent");
       }
-      showToast("AI agent stopped", "warning");
+      showToast$2("AI agent stopped", "warning");
       setStatus((prev) => prev ? { ...prev, status: "CANCELLED" } : null);
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
@@ -824,7 +888,7 @@ function AgentStatusPanel({
       console.error("Stop agent error:", err);
       const errorMsg = err instanceof Error ? err.message : "Failed to stop agent";
       setError(errorMsg);
-      showToast(errorMsg, "error");
+      showToast$2(errorMsg, "error");
     } finally {
       setIsStopping(false);
       setConfirmAction(null);
@@ -1245,11 +1309,7 @@ function AgentStatusPanel({
     ] })
   ] });
 }
-function getCsrfToken$2() {
-  const meta = document.querySelector('meta[name="csrf-token"]');
-  return (meta == null ? void 0 : meta.getAttribute("content")) || "";
-}
-function showToast$2(message, type = "success") {
+function showToast$1(message, type = "success") {
   if (typeof window !== "undefined" && window.showToast) {
     window.showToast(message, type);
   }
@@ -1332,13 +1392,13 @@ function TicketDetailModal({
       if (!response.ok) {
         throw new Error("Failed to delete ticket");
       }
-      showToast$2(`Ticket "${ticket.title}" deleted successfully`, "success");
+      showToast$1(`Ticket "${ticket.title}" deleted successfully`, "success");
       onUpdate({ ...ticket, status: "CANCELLED" });
       onClose();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to delete ticket";
       setError(errorMsg);
-      showToast$2(errorMsg, "error");
+      showToast$1(errorMsg, "error");
     } finally {
       setIsSubmitting(false);
       setConfirmAction(null);
@@ -1357,13 +1417,13 @@ function TicketDetailModal({
       if (!response.ok) {
         throw new Error("Failed to archive ticket");
       }
-      showToast$2(`Ticket "${ticket.title}" archived`, "success");
+      showToast$1(`Ticket "${ticket.title}" archived`, "success");
       onUpdate({ ...ticket, isArchived: true });
       onClose();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to archive ticket";
       setError(errorMsg);
-      showToast$2(errorMsg, "error");
+      showToast$1(errorMsg, "error");
     } finally {
       setIsSubmitting(false);
       setConfirmAction(null);
@@ -1811,7 +1871,7 @@ function KanbanBoard() {
       };
     });
     if (wasAdded && !recentlyCreatedRef.current.has(ticket.id)) {
-      showToast$1(`New ticket: ${ticket.title}`, "success");
+      showToast(`New ticket: ${ticket.title}`, "success");
     }
     recentlyCreatedRef.current.delete(ticket.id);
   }, []);
@@ -1846,7 +1906,7 @@ function KanbanBoard() {
         tickets: prev.tickets.filter((t) => t.id !== data.id)
       };
     });
-    showToast$1("A ticket was deleted", "warning");
+    showToast("A ticket was deleted", "warning");
   }, []);
   const handleWsTicketMoved = reactExports.useCallback((data) => {
     if (isDraggingRef.current) return;
@@ -1865,7 +1925,7 @@ function KanbanBoard() {
         )
       };
     });
-    showToast$1(`Ticket moved to ${data.toStatus.replace("_", " ")}`, "success");
+    showToast(`Ticket moved to ${data.toStatus.replace("_", " ")}`, "success");
   }, []);
   const handleWsBoardRefresh = reactExports.useCallback(async () => {
     if (!(boardState == null ? void 0 : boardState.projectId) || isDraggingRef.current) return;
@@ -1951,7 +2011,7 @@ function KanbanBoard() {
         };
       });
       if (newStatus === "HANDLE") {
-        showToast$1(`Ticket #${ticket.id.slice(-4)} dispatched to Cursor Agent`, "warning");
+        showToast(`Ticket #${ticket.id.slice(-4)} dispatched to Cursor Agent`, "warning");
       }
       try {
         const csrfToken = getCsrfToken();
@@ -1970,11 +2030,11 @@ function KanbanBoard() {
           throw new Error("Failed to update ticket status");
         }
         if (newStatus === "HANDLE") {
-          showToast$1("AI agent started processing", "success");
+          showToast("AI agent started processing", "success");
         }
       } catch (error) {
         console.error("Failed to update ticket:", error);
-        showToast$1("Failed to update ticket", "error");
+        showToast("Failed to update ticket", "error");
         setBoardState((prev) => {
           if (!prev) return prev;
           return {
@@ -2024,7 +2084,7 @@ function KanbanBoard() {
       };
     });
     setIsNewTicketOpen(false);
-    showToast$1("Ticket created successfully", "success");
+    showToast("Ticket created successfully", "success");
     setTimeout(() => recentlyCreatedRef.current.delete(newTicket.id), 5e3);
   }, []);
   const handleQuickArchive = reactExports.useCallback(async (ticket) => {
@@ -2050,10 +2110,10 @@ function KanbanBoard() {
         };
       });
       setArchivedCount((prev) => prev + 1);
-      showToast$1(`"${ticket.title}" archived`, "success");
+      showToast(`"${ticket.title}" archived`, "success");
     } catch (error) {
       console.error("Failed to archive ticket:", error);
-      showToast$1("Failed to archive ticket", "error");
+      showToast("Failed to archive ticket", "error");
     }
   }, [boardState]);
   const [deleteConfirmTicket, setDeleteConfirmTicket] = reactExports.useState(null);
@@ -2081,10 +2141,10 @@ function KanbanBoard() {
           tickets: prev.tickets.filter((t) => t.id !== deleteConfirmTicket.id)
         };
       });
-      showToast$1(`"${deleteConfirmTicket.title}" deleted`, "success");
+      showToast(`"${deleteConfirmTicket.title}" deleted`, "success");
     } catch (error) {
       console.error("Failed to delete ticket:", error);
-      showToast$1("Failed to delete ticket", "error");
+      showToast("Failed to delete ticket", "error");
     } finally {
       setDeleteConfirmTicket(null);
     }
@@ -2190,7 +2250,7 @@ function getCsrfToken() {
   const meta = document.querySelector('meta[name="csrf-token"]');
   return (meta == null ? void 0 : meta.getAttribute("content")) || "";
 }
-function showToast$1(message, type = "success") {
+function showToast(message, type = "success") {
   if (typeof window !== "undefined" && window.showToast) {
     window.showToast(message, type);
   }

@@ -1,7 +1,7 @@
 # OpenTasks - Technical Documentation
 
-> **Version:** 1.0.0  
-> **Last Updated:** December 2024  
+> **Version:** 1.1.0  
+> **Last Updated:** December 2025  
 > **Architecture:** Modern MPA with React Islands
 
 ---
@@ -473,6 +473,38 @@ KanbanBoard (main container)
 └── Toast notifications
 ```
 
+### UI Design System
+
+#### Color Palette
+- **Primary:** Purple (`hsl(263 70% 50%)`) - Brand color for CTAs and accents
+- **Status Processing:** Purple (`hsl(263 70% 60%)`) - AI processing states
+- **Status Review:** Blue (`hsl(217 91% 60%)`) - Review states
+- **Status Success:** Green (`hsl(142 71% 45%)`) - Completed states
+- **Status Error:** Red (`hsl(0 84% 60%)`) - Error states
+
+#### Card Design Principles
+- **Visual Hierarchy:** Title is bold (0.9375rem, font-weight-600, white), description is smaller and gray
+- **Truncation:** Descriptions/summaries limited to 2-3 lines with "..." overflow
+- **Footer Row:** Dedicated footer with priority pill badges (left) and assignee/AI avatar (right)
+- **Priority Badges:** Pill-shaped with colored backgrounds (Low=gray, Medium=blue, High=amber, Urgent=red)
+- **Hover Effects:** Subtle lift (`translateY(-1px)`) and shadow increase on hover
+
+#### Column Design
+- **Backgrounds:** Columns have slightly lighter backgrounds (`hsl(240 10% 8%)`) than the page
+- **Rounded Corners:** 12px border-radius for containment
+- **Top Accent:** 3px colored top border indicating column type
+- **Flex Layout:** Columns grow to fill available space (min-width: 280px, max-width: 400px)
+
+#### AI Processing Visualization
+- **Pulsing Border:** Cards in AI_PROCESSING have animated pulsing purple border
+- **Processing Slide:** Horizontal gradient animation at top of card
+- **AI Badge:** Compact inline badge with terminal icon and spinner
+- **Handle Column:** Special "chute" design with drop animation hint
+
+#### Button Styling
+- **New Ticket Button:** Purple gradient with shadow, hover lift effect
+- **Archive/Action Buttons:** Subtle with hover states
+
 #### AgentStatusPanel Features
 - **Live polling** every 3 seconds
 - **Terminal-like view** of AI conversation
@@ -486,8 +518,9 @@ KanbanBoard (main container)
 - **Collision:** Closest center detection
 
 ### Real-time Updates
-- **Method:** HTTP polling (every 5 seconds)
-- **Endpoint:** `GET /project/:id/board/state`
+- **Method:** WebSocket (Socket.IO) with HTTP polling fallback
+- **Events:** `ticket:created`, `ticket:updated`, `ticket:deleted`, `ticket:moved`
+- **Fallback Polling:** Every 10 seconds when WebSocket disconnected
 - **Behavior:** Pauses during drag or modal open
 
 ---

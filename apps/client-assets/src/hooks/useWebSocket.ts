@@ -16,16 +16,18 @@ export const WS_EVENTS = {
   BOARD_REFRESH: 'board:refresh',
 } as const;
 
+import type { ColumnId, Priority, AgentStatus } from '../types';
+
 interface TicketBroadcast {
   id: string;
   title: string;
   description?: string | null;
-  status: string;
-  priority: string;
+  status: ColumnId;
+  priority: Priority;
   position: number;
   targetBranch?: string | null;
   assigneeId?: string | null;
-  agentStatus?: string | null;
+  agentStatus?: AgentStatus | null;
   prLink?: string | null;
   aiSummary?: string | null;
   createdAt?: string;

@@ -30,24 +30,24 @@ export interface User {
 export interface Ticket {
   id: string;
   title: string;
-  description?: string;
+  description?: string | null;
   status: ColumnId;
   priority: Priority;
   position: number;
-  targetBranch?: string;
-  aiSummary?: string;
-  prLink?: string;
-  agentId?: string;
-  agentStatus?: AgentStatus;
-  agentBranch?: string;
-  aiModel?: string;
-  assignee?: User;
-  assigneeId?: string;
-  createdBy?: User;
+  targetBranch?: string | null;
+  aiSummary?: string | null;
+  prLink?: string | null;
+  agentId?: string | null;
+  agentStatus?: AgentStatus | null;
+  agentBranch?: string | null;
+  aiModel?: string | null;
+  assignee?: User | null;
+  assigneeId?: string | null;
+  createdBy?: User | null;
   createdById: string;
   projectId: string;
   isArchived?: boolean;
-  archivedAt?: string;
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -6,6 +6,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AgentStatusResponse, AgentMessage, AgentStatus } from '../types';
 
+// Helper functions
+function getCsrfToken(): string {
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  return meta?.getAttribute('content') || '';
+}
+
+function showToast(message: string, type: 'success' | 'error' | 'warning' = 'success') {
+  if (typeof window !== 'undefined' && (window as unknown as { showToast?: typeof showToast }).showToast) {
+    (window as unknown as { showToast: typeof showToast }).showToast(message, type);
+  }
+}
+
 interface AgentStatusPanelProps {
   agentId: string;
   ticketId: string;
@@ -670,9 +682,4 @@ export function AgentStatusPanel({
       )}
     </div>
   );
-}
-
-function getCsrfToken(): string {
-  const meta = document.querySelector('meta[name="csrf-token"]');
-  return meta?.getAttribute('content') || '';
 }
