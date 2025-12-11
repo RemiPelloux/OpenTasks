@@ -107,7 +107,20 @@ jobs:
             echo "🔄 Restarting services..."
             docker compose -f docker-compose.server.yml up -d
             
-            echo "⏳ Waiting for services to start..."
+            echo "⏳ Waiting for database to be ready..."
+            sleep 10
+            
+            echo "📦 Running database migrations..."
+            docker compose -f docker-compose.server.yml exec -T server npx prisma db push --accept-data-loss || {
+              echo "Migration with server failed, trying with standalone prisma..."
+              docker compose -f docker-compose.server.yml exec -T server npx prisma generate
+              docker compose -f docker-compose.server.yml exec -T server npx prisma db push
+            }
+            
+            echo "🔄 Restarting services after migration..."
+            docker compose -f docker-compose.server.yml restart server worker
+            
+            echo "⏳ Waiting for services to stabilize..."
             sleep 10
             
             echo "🏥 Health check..."
