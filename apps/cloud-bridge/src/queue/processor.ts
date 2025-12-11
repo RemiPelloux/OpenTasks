@@ -7,7 +7,7 @@ import type { Job } from 'bullmq';
 import { prisma, decrypt, sanitizePromptInput } from '@opentasks/database';
 import { CursorApiClient } from '../cursor-api/client.js';
 import { checkCostGuardrails, recordUsage } from '../services/cost-guardrails.js';
-import { notifySlack } from '../services/slack.js';
+import { sendNotification } from '../services/notifications.js';
 import { eventPublisher } from '../services/events.js';
 
 interface TicketJobData {
@@ -126,9 +126,9 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
       data: { agentId: agentResponse.id },
     });
 
-    // Send Slack notification for processing started
-    notifySlack(ticketId, 'processing').catch((err) => {
-      console.error('[Slack] Failed to send processing notification:', err);
+    // Send notification for processing started
+    sendNotification(ticketId, 'processing').catch((err) => {
+      console.error('[Notification] Failed to send processing notification:', err);
     });
 
     // Poll for completion (with exponential backoff)
@@ -188,9 +188,9 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
 
       console.log(`✅ Agent completed. PR: ${result.prUrl}`);
 
-      // Send Slack notification for completion
-      notifySlack(ticketId, 'completed').catch((err) => {
-        console.error('[Slack] Failed to send completed notification:', err);
+      // Send notification for completion
+      sendNotification(ticketId, 'completed').catch((err) => {
+        console.error('[Notification] Failed to send completed notification:', err);
       });
     } else {
       throw new Error(result.error || 'Agent failed with unknown error');
@@ -198,22 +198,26 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
   } catch (error) {
     console.error(`❌ Job processing error:`, error);
 
+    // Parse and format error message for better user feedback
+    const rawErrorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const formattedError = formatErrorMessage(rawErrorMessage);
+
     // Update job as failed
     await prisma.agentJob.update({
       where: { id: jobId },
       data: {
         status: 'FAILED',
         completedAt: new Date(),
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorMessage: rawErrorMessage,
       },
     });
 
-    // Move ticket back to TODO
+    // Move ticket back to TODO with user-friendly error
     const failedTicket = await prisma.ticket.update({
       where: { id: ticketId },
       data: {
         status: 'TODO',
-        aiSummary: `AI processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        aiSummary: formattedError.userMessage,
       },
     });
 
@@ -235,15 +239,118 @@ export async function processTicketJob(job: Job<TicketJobData>): Promise<void> {
       },
     });
 
-    // Send Slack notification for error
-    notifySlack(ticketId, 'error', {
-      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    // Send notification for error
+    sendNotification(ticketId, 'error', {
+      errorMessage: formattedError.notificationMessage,
     }).catch((err) => {
-      console.error('[Slack] Failed to send error notification:', err);
+      console.error('[Notification] Failed to send error notification:', err);
     });
 
     throw error;
   }
+}
+
+/**
+ * Format error message for user display and notifications
+ * Parses common Cursor API errors and provides actionable messages
+ */
+function formatErrorMessage(rawError: string): {
+  userMessage: string;
+  notificationMessage: string;
+} {
+  // Check for hard limit error
+  if (rawError.includes('hard limit') || rawError.includes('increase your hard limit')) {
+    return {
+      userMessage: `⚠️ Cursor API Spending Limit Reached
+
+Your Cursor account requires at least $2 remaining until your hard spending limit.
+
+🔧 How to fix:
+1. Go to https://www.cursor.com/dashboard?tab=settings
+2. Increase your "Hard Limit" spending cap
+3. Drag this ticket back to "AI Agent" to retry
+
+The ticket has been moved back to TODO.`,
+      notificationMessage: '💸 Cursor API spending limit reached. Increase your hard limit at cursor.com/dashboard to continue.',
+    };
+  }
+
+  // Check for rate limit error
+  if (rawError.includes('rate limit') || rawError.includes('too many requests')) {
+    return {
+      userMessage: `⏱️ Rate Limit Exceeded
+
+Too many requests to the Cursor API. Please wait a few minutes before retrying.
+
+🔧 How to fix:
+1. Wait 2-5 minutes
+2. Drag this ticket back to "AI Agent" to retry
+
+The ticket has been moved back to TODO.`,
+      notificationMessage: '⏱️ Rate limit exceeded. Wait a few minutes then retry.',
+    };
+  }
+
+  // Check for authentication error
+  if (rawError.includes('401') || rawError.includes('unauthorized') || rawError.includes('invalid key')) {
+    return {
+      userMessage: `🔑 Invalid or Expired API Key
+
+Your Cursor API key is invalid or has expired.
+
+🔧 How to fix:
+1. Generate a new API key at cursor.com
+2. Update it in Project Settings
+3. Drag this ticket back to "AI Agent" to retry
+
+The ticket has been moved back to TODO.`,
+      notificationMessage: '🔑 Cursor API key is invalid or expired. Update it in Project Settings.',
+    };
+  }
+
+  // Check for quota/credit error
+  if (rawError.includes('quota') || rawError.includes('credits') || rawError.includes('insufficient')) {
+    return {
+      userMessage: `💰 Insufficient Cursor Credits
+
+Your Cursor account has run out of API credits.
+
+🔧 How to fix:
+1. Go to https://www.cursor.com/dashboard
+2. Add credits to your account
+3. Drag this ticket back to "AI Agent" to retry
+
+The ticket has been moved back to TODO.`,
+      notificationMessage: '💰 Insufficient Cursor credits. Add credits at cursor.com/dashboard.',
+    };
+  }
+
+  // Check for repository access error
+  if (rawError.includes('repository') && (rawError.includes('access') || rawError.includes('not found'))) {
+    return {
+      userMessage: `🔒 Repository Access Error
+
+Cannot access the configured repository. The repository may be private or the GitHub connection may need to be refreshed.
+
+🔧 How to fix:
+1. Check that your GitHub repository is correctly connected in Cursor
+2. Verify repository permissions
+3. Drag this ticket back to "AI Agent" to retry
+
+The ticket has been moved back to TODO.`,
+      notificationMessage: '🔒 Repository access error. Check GitHub connection in Cursor.',
+    };
+  }
+
+  // Default error message
+  return {
+    userMessage: `❌ AI Processing Failed
+
+${rawError}
+
+The ticket has been moved back to TODO. You can try again by dragging it to the "AI Agent" column.`,
+    notificationMessage: `Error: ${rawError.length > 100 ? rawError.substring(0, 100) + '...' : rawError}`,
+  };
 }
 
 /**

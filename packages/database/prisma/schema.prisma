@@ -112,9 +112,12 @@ model Project {
   branchPresets String?  @map("branch_presets") @db.Text
   defaultBranch String?  @map("default_branch") @default("main")
   
-  // Slack notifications - encrypted webhook URL and enabled events
+  // Notifications - encrypted webhook URLs and enabled events
   // Events: ["queued", "processing", "completed", "error", "validated"]
+  // Channel: "slack" | "discord" | "both"
+  notificationChannel   String?  @map("notification_channel") @default("slack") // slack, discord, both
   slackWebhookEncrypted String?  @map("slack_webhook_encrypted") @db.Text
+  discordWebhookEncrypted String? @map("discord_webhook_encrypted") @db.Text
   slackEvents           String?  @map("slack_events") @db.Text // JSON array of enabled events
   
   isArchived Boolean  @default(false) @map("is_archived")

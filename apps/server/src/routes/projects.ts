@@ -248,6 +248,8 @@ projectRoutes.get('/:id/settings', async (req, res) => {
         ...project,
         hasApiKey: !!project.cursorApiKeyEncrypted,
         hasSlackWebhook: !!project.slackWebhookEncrypted,
+        hasDiscordWebhook: !!project.discordWebhookEncrypted,
+        notificationChannel: project.notificationChannel || 'slack',
         slackEvents,
       },
       membership,
@@ -282,7 +284,7 @@ projectRoutes.post('/:id/settings', async (req, res) => {
       return;
     }
 
-    const { name, description, githubRepoUrl, defaultBranch, branchPresetsText, slackWebhook } = req.body;
+    const { name, description, githubRepoUrl, defaultBranch, branchPresetsText, slackWebhook, discordWebhook, notificationChannel } = req.body;
     const slackEventsRaw = req.body['slackEvents[]'];
 
     // Handle API key update (only if provided)
@@ -298,6 +300,13 @@ projectRoutes.post('/:id/settings', async (req, res) => {
     if (slackWebhook) {
       const { encrypt } = await import('@opentasks/database');
       slackWebhookEncrypted = encrypt(slackWebhook);
+    }
+
+    // Handle Discord webhook update (only if provided)
+    let discordWebhookEncrypted: string | undefined;
+    if (discordWebhook) {
+      const { encrypt } = await import('@opentasks/database');
+      discordWebhookEncrypted = encrypt(discordWebhook);
     }
 
     // Handle Slack events - can be string, array, or undefined
@@ -328,6 +337,10 @@ projectRoutes.post('/:id/settings', async (req, res) => {
       }
     }
 
+    // Validate notification channel
+    const validChannels = ['slack', 'discord', 'both'];
+    const selectedChannel = validChannels.includes(notificationChannel) ? notificationChannel : 'slack';
+
     await prisma.project.update({
       where: { id },
       data: {
@@ -337,8 +350,10 @@ projectRoutes.post('/:id/settings', async (req, res) => {
         defaultBranch: defaultBranch?.trim() || 'main',
         branchPresets,
         slackEvents,
+        notificationChannel: selectedChannel,
         ...(cursorApiKeyEncrypted && { cursorApiKeyEncrypted }),
         ...(slackWebhookEncrypted && { slackWebhookEncrypted }),
+        ...(discordWebhookEncrypted && { discordWebhookEncrypted }),
       },
     });
 
@@ -738,6 +753,61 @@ projectRoutes.post('/:id/test-slack', async (req, res) => {
     }
   } catch (error) {
     console.error('Test Slack webhook error:', error);
+    res.status(500).json({ error: 'Failed to test webhook' });
+  }
+});
+
+/**
+ * API: Test Discord webhook
+ */
+projectRoutes.post('/:id/test-discord', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { webhookUrl } = req.body;
+
+    // Check project access (admin or owner only)
+    const membership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: id,
+        userId: req.session.user!.id,
+        role: { in: ['OWNER', 'ADMIN'] },
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    // Get the webhook URL - either from request or from project
+    let targetWebhook = webhookUrl;
+    
+    if (!targetWebhook) {
+      const project = await prisma.project.findUnique({
+        where: { id },
+        select: { discordWebhookEncrypted: true },
+      });
+
+      if (!project?.discordWebhookEncrypted) {
+        res.status(400).json({ error: 'No Discord webhook URL configured' });
+        return;
+      }
+
+      const { decrypt } = await import('@opentasks/database');
+      targetWebhook = decrypt(project.discordWebhookEncrypted);
+    }
+
+    // Send test notification
+    const { testDiscordWebhook } = await import('../services/slack.js');
+    const result = await testDiscordWebhook(targetWebhook);
+
+    if (result.success) {
+      res.json({ success: true, message: 'Test notification sent!' });
+    } else {
+      res.status(400).json({ error: result.error || 'Failed to send test notification' });
+    }
+  } catch (error) {
+    console.error('Test Discord webhook error:', error);
     res.status(500).json({ error: 'Failed to test webhook' });
   }
 });

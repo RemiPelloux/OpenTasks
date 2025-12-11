@@ -248,5 +248,48 @@ export async function testSlackWebhook(
   return sendSlackNotification(webhookUrl, testPayload);
 }
 
+/**
+ * Test a Discord webhook URL
+ */
+export async function testDiscordWebhook(
+  webhookUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  const testPayload = {
+    username: 'OpenTasks AI',
+    embeds: [
+      {
+        title: '🧪 Webhook Test Successful!',
+        description: 'Your Discord integration is working correctly.',
+        color: 0x22c55e, // Green
+        footer: {
+          text: 'OpenTasks AI Agent',
+        },
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  };
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testPayload),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return { success: false, error: `Discord API error: ${response.status} - ${text}` };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Discord notification error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
 
 
