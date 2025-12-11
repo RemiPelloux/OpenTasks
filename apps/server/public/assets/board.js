@@ -52,51 +52,39 @@ function TicketCard({ ticket, isDragging = false, onClick, onArchive, onDelete }
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-content", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-header", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "ticket-title", children: ticket.title }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ticket-priority-pill ${priorityConfig[ticket.priority].class}`, children: priorityConfig[ticket.priority].label }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "ticket-title", title: ticket.title, children: ticket.title }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ticket-priority-pill ${priorityConfig[ticket.priority].class}`, children: priorityConfig[ticket.priority].label })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-description-section", children: [
+            ticket.description && !ticket.aiSummary && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "ticket-description", title: ticket.description, children: ticket.description }),
+            ticket.aiSummary && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `ticket-ai-summary ${hasError ? "error" : ""}`, title: ticket.aiSummary, children: [
+              hasError ? /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorIcon, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(AIIcon, {}),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.aiSummary })
+            ] }),
+            isProcessing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-ai-badge", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(TerminalIcon, {}),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.status === "HANDLE" ? "Queued" : "Processing..." })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer-left", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ticket-id", children: [
               "#",
               ticket.id.slice(-4)
-            ] })
+            ] }),
+            (ticket.agentBranch || ticket.targetBranch) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "span",
+              {
+                className: `ticket-branch-badge ${ticket.agentBranch ? "has-agent-branch" : ""}`,
+                title: ticket.agentBranch || ticket.targetBranch || "",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(BranchIcon, {}),
+                  (ticket.agentBranch || ticket.targetBranch || "").length > 12 ? (ticket.agentBranch || ticket.targetBranch || "").slice(0, 12) + "..." : ticket.agentBranch || ticket.targetBranch
+                ]
+              }
+            )
           ] }),
-          ticket.description && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "ticket-description", children: ticket.description }),
-          isProcessing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-ai-badge", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(TerminalIcon, {}),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.status === "HANDLE" ? "Queued" : "Processing..." }),
-            ticket.status === "AI_PROCESSING" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mini-spinner" })
-          ] }),
-          ticket.aiSummary && !isProcessing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `ticket-ai-summary ${hasError ? "error" : ""}`, children: [
-            hasError ? /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorIcon, {}) : /* @__PURE__ */ jsxRuntimeExports.jsx(AIIcon, {}),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.aiSummary })
-          ] })
-        ] }),
-        wasProcessedBefore && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-processed-badge", title: "This ticket was previously processed by AI", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(RetryIcon, {}),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Previously processed" }),
-          ticket.prLink && /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "a",
-            {
-              href: ticket.prLink,
-              target: "_blank",
-              rel: "noopener noreferrer",
-              onClick: (e) => e.stopPropagation(),
-              className: "processed-pr-link",
-              children: "View PR"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ticket-footer-left", children: (ticket.agentBranch || ticket.targetBranch) && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "span",
-            {
-              className: `ticket-branch-badge ${ticket.agentBranch ? "has-agent-branch" : ""}`,
-              title: ticket.agentBranch || ticket.targetBranch || "",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(BranchIcon, {}),
-                (ticket.agentBranch || ticket.targetBranch || "").length > 18 ? (ticket.agentBranch || ticket.targetBranch || "").slice(0, 18) + "..." : ticket.agentBranch || ticket.targetBranch
-              ]
-            }
-          ) }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "ticket-footer-right", children: [
             ticket.prLink && /* @__PURE__ */ jsxRuntimeExports.jsx(
               "a",
@@ -189,14 +177,6 @@ function ErrorIcon() {
     /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", x2: "12", y1: "8", y2: "12" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "12", x2: "12.01", y1: "16", y2: "16" })
-  ] });
-}
-function RetryIcon() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", className: "icon-xs", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M21 3v5h-5" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("path", { d: "M8 16H3v5" })
   ] });
 }
 function CheckBadgeIcon() {

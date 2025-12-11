@@ -87,62 +87,44 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
         </>
       )}
 
-      {/* Card Content */}
+      {/* Card Content - Horizontal Flow */}
       <div className="ticket-content">
-        {/* Header Row: Title + Priority + ID */}
+        {/* Left: Title + Priority */}
         <div className="ticket-header">
-          <h4 className="ticket-title">{ticket.title}</h4>
+          <h4 className="ticket-title" title={ticket.title}>{ticket.title}</h4>
           <span className={`ticket-priority-pill ${priorityConfig[ticket.priority].class}`}>
             {priorityConfig[ticket.priority].label}
           </span>
-          <span className="ticket-id">#{ticket.id.slice(-4)}</span>
         </div>
 
-        {/* Description */}
-        {ticket.description && (
-          <p className="ticket-description">{ticket.description}</p>
-        )}
+        {/* Center: Description or AI Summary */}
+        <div className="ticket-description-section">
+          {ticket.description && !ticket.aiSummary && (
+            <p className="ticket-description" title={ticket.description}>{ticket.description}</p>
+          )}
+          
+          {ticket.aiSummary && (
+            <div className={`ticket-ai-summary ${hasError ? 'error' : ''}`} title={ticket.aiSummary}>
+              {hasError ? <ErrorIcon /> : <AIIcon />}
+              <span>{ticket.aiSummary}</span>
+            </div>
+          )}
 
-        {/* AI Status - Compact display */}
-        {isProcessing && (
-          <div className="ticket-ai-badge">
-            <TerminalIcon />
-            <span>{ticket.status === 'HANDLE' ? 'Queued' : 'Processing...'}</span>
-            {ticket.status === 'AI_PROCESSING' && <div className="mini-spinner" />}
-          </div>
-        )}
-
-        {/* AI Summary - Full text, no truncation */}
-        {ticket.aiSummary && !isProcessing && (
-          <div className={`ticket-ai-summary ${hasError ? 'error' : ''}`}>
-            {hasError ? <ErrorIcon /> : <AIIcon />}
-            <span>{ticket.aiSummary}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Previously Processed Indicator */}
-      {wasProcessedBefore && (
-        <div className="ticket-processed-badge" title="This ticket was previously processed by AI">
-          <RetryIcon />
-          <span>Previously processed</span>
-          {ticket.prLink && (
-            <a 
-              href={ticket.prLink} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="processed-pr-link"
-            >
-              View PR
-            </a>
+          {isProcessing && (
+            <div className="ticket-ai-badge">
+              <TerminalIcon />
+              <span>{ticket.status === 'HANDLE' ? 'Queued' : 'Processing...'}</span>
+            </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Footer Row - Branch + Assignee/PR/Status */}
+      {/* Right Side: Footer with metadata */}
       <div className="ticket-footer">
         <div className="ticket-footer-left">
+          {/* Ticket ID */}
+          <span className="ticket-id">#{ticket.id.slice(-4)}</span>
+
           {/* Branch Badge */}
           {(ticket.agentBranch || ticket.targetBranch) && (
             <span 
@@ -150,8 +132,8 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
               title={ticket.agentBranch || ticket.targetBranch || ''}
             >
               <BranchIcon />
-              {(ticket.agentBranch || ticket.targetBranch || '').length > 18 
-                ? (ticket.agentBranch || ticket.targetBranch || '').slice(0, 18) + '...' 
+              {(ticket.agentBranch || ticket.targetBranch || '').length > 12 
+                ? (ticket.agentBranch || ticket.targetBranch || '').slice(0, 12) + '...' 
                 : (ticket.agentBranch || ticket.targetBranch)}
             </span>
           )}
