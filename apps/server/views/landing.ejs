@@ -1,91 +1,680 @@
 <% const body = `
-<div class="flex min-h-screen flex-col">
+<style>
+  /* Landing Page Specific Styles */
+  .landing-page {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+    color: #1e293b;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .landing-page * {
+    color: inherit;
+  }
+
+  /* Floating animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(2deg); }
+  }
+
+  @keyframes float-delayed {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(-2deg); }
+  }
+
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.5); }
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  .animate-float-delayed { animation: float-delayed 7s ease-in-out infinite; }
+  .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+  .animate-fade-in-up { animation: fade-in-up 0.8s ease-out forwards; }
+  .animate-delay-100 { animation-delay: 0.1s; }
+  .animate-delay-200 { animation-delay: 0.2s; }
+  .animate-delay-300 { animation-delay: 0.3s; }
+  .animate-delay-400 { animation-delay: 0.4s; }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 3s ease infinite;
+  }
+
+  /* Floating cards */
+  .floating-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    position: absolute;
+    z-index: 10;
+  }
+
+  /* Sticky note */
+  .sticky-note {
+    background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+    padding: 16px 20px;
+    border-radius: 4px;
+    transform: rotate(-6deg);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    font-size: 14px;
+    color: #713f12;
+    position: absolute;
+  }
+
+  .sticky-note::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    background: #ef4444;
+    border-radius: 50%;
+  }
+
+  /* Hero section */
+  .hero-section {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+  }
+
+  /* Header */
+  .landing-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(248, 250, 252, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+
+  .landing-header nav {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+
+  .nav-links a {
+    color: #64748b;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover {
+    color: #1e293b;
+  }
+
+  .nav-cta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .btn-ghost {
+    padding: 8px 16px;
+    color: #64748b;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .btn-ghost:hover {
+    color: #1e293b;
+  }
+
+  .btn-primary {
+    padding: 10px 24px;
+    background: #1e293b;
+    color: white !important;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: #0f172a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  .btn-cta {
+    padding: 16px 32px;
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    color: white !important;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    text-decoration: none;
+    transition: all 0.3s;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+  }
+
+  .btn-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
+  }
+
+  /* Logo */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 20px;
+    color: #1e293b;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .logo-dots {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+
+  .logo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .logo-dot.blue { background: #3b82f6; }
+  .logo-dot.dark { background: #1e293b; }
+
+  /* Feature cards floating */
+  .feature-float-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    position: absolute;
+    min-width: 200px;
+  }
+
+  /* Task preview card */
+  .task-preview {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.12);
+    width: 280px;
+  }
+
+  .task-preview h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 16px;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .task-item:last-child {
+    border-bottom: none;
+  }
+
+  .task-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .task-badge.blue { background: #dbeafe; color: #2563eb; }
+  .task-badge.green { background: #dcfce7; color: #16a34a; }
+
+  .task-info {
+    flex: 1;
+  }
+
+  .task-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e293b;
+  }
+
+  .task-date {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+
+  .task-progress {
+    width: 80px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .task-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  .task-progress-bar.blue { background: #3b82f6; }
+  .task-progress-bar.red { background: #ef4444; }
+
+  /* Reminder card */
+  .reminder-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    width: 220px;
+  }
+
+  .reminder-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .reminder-icon {
+    width: 40px;
+    height: 40px;
+    background: #fef3c7;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  .reminder-title {
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  /* Integration card */
+  .integration-card {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    text-align: center;
+    width: 200px;
+  }
+
+  .integration-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 16px;
+  }
+
+  .integration-icons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .integration-icon {
+    width: 48px;
+    height: 48px;
+    background: #f8fafc;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  /* Features section */
+  .features-section {
+    padding: 100px 20px;
+    background: white;
+  }
+
+  .features-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .feature-card {
+    background: #f8fafc;
+    border-radius: 20px;
+    padding: 32px;
+    transition: all 0.3s;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+  }
+
+  .feature-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .feature-card h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 12px;
+  }
+
+  .feature-card p {
+    color: #64748b;
+    line-height: 1.6;
+  }
+
+  /* Footer */
+  .landing-footer {
+    background: #f8fafc;
+    padding: 32px 20px;
+    text-align: center;
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .floating-card,
+    .sticky-note,
+    .feature-float-card,
+    .task-preview,
+    .reminder-card,
+    .integration-card {
+      display: none;
+    }
+
+    .nav-links {
+      display: none;
+    }
+
+    .hero-section h1 {
+      font-size: 36px !important;
+    }
+  }
+</style>
+
+<div class="landing-page">
+  <!-- Header -->
+  <header class="landing-header">
+    <nav>
+      <a href="/" class="logo">
+        <div class="logo-icon">
+          <div class="logo-dots">
+            <div class="logo-dot blue"></div>
+            <div class="logo-dot dark"></div>
+            <div class="logo-dot dark"></div>
+            <div class="logo-dot dark"></div>
+          </div>
+        </div>
+        OpenTasks
+      </a>
+      
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it Works</a>
+        <a href="/docs">Documentation</a>
+      </div>
+      
+      <div class="nav-cta">
+        <a href="/login" class="btn-ghost">Sign in</a>
+        <a href="/register" class="btn-primary">Get started</a>
+      </div>
+    </nav>
+  </header>
+
   <!-- Hero Section -->
-  <section class="container flex flex-col items-center justify-center gap-6 pb-8 pt-6 md:py-10 lg:py-32">
-    <div class="flex max-w-[980px] flex-col items-center gap-4 text-center">
-      <!-- Logo -->
-      <div class="mb-4">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-12 w-12">
-          <rect width="32" height="32" rx="8" fill="currentColor" class="text-foreground"/>
-          <path d="M8 16L13 21L24 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-background"/>
-          <circle cx="24" cy="8" r="3" fill="hsl(45 93% 47%)"/>
-          <circle cx="24" cy="8" r="1.5" fill="currentColor" class="text-background"/>
-        </svg>
+  <section class="hero-section">
+    <!-- Floating Elements - Left Side -->
+    <div class="sticky-note animate-float" style="top: 15%; left: 5%;">
+      Let AI handle<br>your coding tasks<br>with ease.
+    </div>
+
+    <!-- Task Preview Card - Left -->
+    <div class="task-preview animate-float-delayed" style="position: absolute; bottom: 15%; left: 3%;">
+      <h4>Today's tasks</h4>
+      <div class="task-item">
+        <div class="task-badge blue">B</div>
+        <div class="task-info">
+          <div class="task-title">Add user authentication</div>
+          <div class="task-date">Dec 10</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="task-progress">
+            <div class="task-progress-bar blue" style="width: 60%;"></div>
+          </div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 4px;">60%</div>
+        </div>
       </div>
-      
-      <!-- Badge -->
-      <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3 mr-1">
-          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-        </svg>
-        Internal Tool • Invite Only
+      <div class="task-item">
+        <div class="task-badge green">3</div>
+        <div class="task-info">
+          <div class="task-title">Fix payment bug</div>
+          <div class="task-date">Dec 11</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="task-progress">
+            <div class="task-progress-bar red" style="width: 100%;"></div>
+          </div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Done</div>
+        </div>
       </div>
-      
-      <h1 class="text-3xl font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1]">
-        AI-Native<br class="hidden sm:inline" />
-        <span class="text-muted-foreground">Project Management</span>
+    </div>
+
+    <!-- Reminder Card - Right Top -->
+    <div class="reminder-card animate-float" style="position: absolute; top: 12%; right: 5%;">
+      <div class="reminder-header">
+        <div class="reminder-icon">⏰</div>
+        <div class="reminder-title">Reminders</div>
+      </div>
+      <div style="padding: 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 8px;">
+        <div style="font-size: 12px; color: #64748b;">Meetings</div>
+        <div style="font-weight: 600; color: #1e293b; margin-top: 4px;">Code Review</div>
+        <div style="font-size: 12px; color: #3b82f6; margin-top: 4px;">🕐 14:00 - 15:00</div>
+      </div>
+    </div>
+
+    <!-- Integration Card - Right Bottom -->
+    <div class="integration-card animate-float-slow" style="position: absolute; bottom: 20%; right: 3%;">
+      <div class="integration-title">Integrations</div>
+      <div class="integration-icons">
+        <div class="integration-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" fill="#1e293b"/>
+          </svg>
+        </div>
+        <div class="integration-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
+          </svg>
+        </div>
+        <div class="integration-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M22.2 14.4l-2.4-3.6 2.4-3.6c.3-.5.4-1.1.2-1.6-.2-.5-.6-.9-1.1-1.1L3.5.1c-.5-.2-1.1-.1-1.6.2S1 1 1 1.6v20.8c0 .6.4 1.1.9 1.4.5.3 1.1.4 1.6.2l17.8-4.4c.5-.2.9-.6 1.1-1.1.2-.5.1-1.1-.2-1.6z" fill="#4285F4"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div style="text-align: center; max-width: 800px; position: relative; z-index: 20;">
+      <!-- Logo Icon -->
+      <div class="animate-fade-in-up" style="margin-bottom: 32px;">
+        <div style="width: 80px; height: 80px; background: white; border-radius: 20px; margin: 0 auto; display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
+          <div class="logo-dots" style="transform: scale(1.5);">
+            <div class="logo-dot blue"></div>
+            <div class="logo-dot dark"></div>
+            <div class="logo-dot dark"></div>
+            <div class="logo-dot dark"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Headline -->
+      <h1 class="animate-fade-in-up animate-delay-100" style="font-size: 64px; font-weight: 700; line-height: 1.1; margin-bottom: 24px;">
+        Think, plan, and build<br>
+        <span class="gradient-text">all in one place</span>
       </h1>
-      
-      <p class="max-w-[750px] text-lg text-muted-foreground sm:text-xl">
-        Move a ticket to "Handle" and let Cursor Cloud Agent write the code, 
-        run tests, and create Pull Requests. Your Kanban board is now a control center.
+
+      <!-- Subtitle -->
+      <p class="animate-fade-in-up animate-delay-200" style="font-size: 20px; color: #64748b; max-width: 600px; margin: 0 auto 40px; line-height: 1.6;">
+        Let AI handle your development tasks. Drag a ticket to "Handle" and watch 
+        Cursor Cloud write code, run tests, and create Pull Requests automatically.
       </p>
-      
-      <!-- CTA Buttons -->
-      <div class="flex flex-wrap justify-center gap-4 mt-4">
-        <a href="/login" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8">
-          Sign In
-        </a>
-        <a href="/register" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8">
-          Join with Invite Code
-        </a>
-        <a href="/docs" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-muted-foreground hover:text-foreground h-11 px-4">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 mr-2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-          Documentation
-        </a>
+
+      <!-- CTA Button -->
+      <div class="animate-fade-in-up animate-delay-300">
+        <a href="/register" class="btn-cta">Get free demo</a>
+      </div>
+
+      <!-- Trust Badge -->
+      <div class="animate-fade-in-up animate-delay-400" style="margin-top: 32px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #94a3b8; font-size: 14px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Powered by Cursor Cloud AI • Enterprise Ready
       </div>
     </div>
   </section>
-  
+
   <!-- Features Section -->
-  <section class="container space-y-6 py-8 md:py-12 lg:py-24 border-t">
-    <div class="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
-      <h2 class="font-bold text-2xl leading-[1.1] sm:text-3xl md:text-4xl">How It Works</h2>
-      <p class="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">Four steps from requirement to Pull Request</p>
+  <section id="features" class="features-section">
+    <div style="max-width: 1200px; margin: 0 auto; text-align: center; margin-bottom: 60px;">
+      <h2 style="font-size: 40px; font-weight: 700; color: #1e293b; margin-bottom: 16px;">
+        How it works
+      </h2>
+      <p style="font-size: 18px; color: #64748b;">
+        Four simple steps from requirement to Pull Request
+      </p>
     </div>
-    
-    <div class="mx-auto grid justify-center gap-4 sm:grid-cols-2 md:max-w-[64rem] md:grid-cols-4">
-      <div class="relative overflow-hidden rounded-lg border bg-card p-6">
-        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-xl font-bold mb-4">1</div>
-        <h3 class="font-bold">Create Ticket</h3>
-        <p class="text-sm text-muted-foreground mt-2">Describe your task with clear requirements. The AI uses this as context.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>1. Create a Ticket</h3>
+        <p>Describe your task with clear requirements. Add context, acceptance criteria, and any technical details the AI needs.</p>
       </div>
-      
-      <div class="relative overflow-hidden rounded-lg border bg-card p-6">
-        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[hsl(45_93%_47%_/_0.2)] text-[hsl(45_93%_47%)] text-xl font-bold mb-4">⚡</div>
-        <h3 class="font-bold">Drag to Handle</h3>
-        <p class="text-sm text-muted-foreground mt-2">Move ticket to "Handle" column to trigger the Cursor Cloud Agent.</p>
+
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>2. Drag to Handle</h3>
+        <p>Simply drag your ticket to the "Handle" column. This triggers the Cursor Cloud Agent to start working on your task.</p>
       </div>
-      
-      <div class="relative overflow-hidden rounded-lg border bg-card p-6">
-        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-xl font-bold mb-4">🤖</div>
-        <h3 class="font-bold">AI Codes</h3>
-        <p class="text-sm text-muted-foreground mt-2">Cursor Cloud clones your repo, implements the feature, runs tests.</p>
+
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>3. AI Writes Code</h3>
+        <p>The AI clones your repository, implements the feature, writes tests, and ensures everything works correctly.</p>
       </div>
-      
-      <div class="relative overflow-hidden rounded-lg border bg-card p-6">
-        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[hsl(142_71%_45%_/_0.2)] text-[hsl(142_71%_45%)] text-xl font-bold mb-4">✓</div>
-        <h3 class="font-bold">Review PR</h3>
-        <p class="text-sm text-muted-foreground mt-2">A Pull Request appears automatically. Review, tweak, and merge.</p>
+
+      <div class="feature-card">
+        <div class="feature-icon">✅</div>
+        <h3>4. Review & Merge</h3>
+        <p>A Pull Request appears automatically. Review the changes, request tweaks if needed, and merge when ready.</p>
       </div>
     </div>
   </section>
-  
+
+  <!-- Second CTA Section -->
+  <section id="how-it-works" style="padding: 100px 20px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); text-align: center;">
+    <h2 style="font-size: 40px; font-weight: 700; color: white; margin-bottom: 16px;">
+      Ready to supercharge your workflow?
+    </h2>
+    <p style="font-size: 18px; color: rgba(255,255,255,0.8); margin-bottom: 40px;">
+      Join teams using AI to ship features faster than ever.
+    </p>
+    <a href="/register" style="display: inline-block; padding: 16px 40px; background: white; color: #6366f1 !important; border-radius: 12px; font-weight: 600; font-size: 16px; text-decoration: none; transition: all 0.3s; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+      Start for free
+    </a>
+  </section>
+
   <!-- Footer -->
-  <footer class="border-t py-6 md:py-0">
-    <div class="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-      <p class="text-sm text-muted-foreground">OpenTasks • Internal Development Tool</p>
+  <footer class="landing-footer">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
+      <div class="logo-dots" style="transform: scale(0.8);">
+        <div class="logo-dot blue"></div>
+        <div class="logo-dot dark"></div>
+        <div class="logo-dot dark"></div>
+        <div class="logo-dot dark"></div>
+      </div>
+      <span style="font-weight: 600; color: #1e293b;">OpenTasks</span>
     </div>
+    <p>© 2024 OpenTasks • AI-Native Project Management</p>
   </footer>
 </div>
 ` %>
