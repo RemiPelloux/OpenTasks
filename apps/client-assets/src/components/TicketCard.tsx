@@ -75,11 +75,16 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
       {...attributes}
       {...listeners}
     >
-      {/* AI Processing Indicator - Overlay */}
+      {/* AI Processing Indicator - Overlay + Terminal Icon */}
       {ticket.status === 'AI_PROCESSING' && (
-        <div className="ticket-processing-overlay">
-          <div className="processing-pulse" />
-        </div>
+        <>
+          <div className="ticket-processing-overlay">
+            <div className="processing-pulse" />
+          </div>
+          <div className="ticket-thinking-indicator" title="AI is working...">
+            <ThinkingIcon />
+          </div>
+        </>
       )}
 
       {/* Card Content */}
@@ -101,25 +106,11 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
           </div>
         )}
 
-        {/* PR Link */}
-        {ticket.prLink && (
-          <a
-            href={ticket.prLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ticket-pr-link"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GitPRIcon />
-            View PR
-          </a>
-        )}
-
-        {/* AI Summary - Truncated */}
+        {/* AI Summary - Truncated to 3 lines max */}
         {ticket.aiSummary && !isProcessing && (
           <div className={`ticket-ai-summary ${hasError ? 'error' : ''}`}>
             {hasError ? <ErrorIcon /> : <AIIcon />}
-            <span>{truncate(ticket.aiSummary, 2)}</span>
+            <span>{truncate(ticket.aiSummary, 3)}</span>
           </div>
         )}
       </div>
@@ -169,12 +160,26 @@ export function TicketCard({ ticket, isDragging = false, onClick, onArchive, onD
           {/* Ticket ID */}
           <span className="ticket-id">#{ticket.id.slice(-4)}</span>
           
+          {/* PR Icon Button */}
+          {ticket.prLink && (
+            <a
+              href={ticket.prLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ticket-pr-icon"
+              onClick={(e) => e.stopPropagation()}
+              title="View Pull Request"
+            >
+              <GitHubIcon />
+            </a>
+          )}
+          
           {/* Status indicators */}
           {isProcessing ? (
             <div className="ticket-ai-avatar" title="AI Agent Processing">
               <RobotIcon />
             </div>
-          ) : hasExistingWork && !wasProcessedBefore ? (
+          ) : hasExistingWork && !wasProcessedBefore && !ticket.prLink ? (
             <div className="ticket-has-work" title="Has existing work">
               <CheckBadgeIcon />
             </div>
@@ -315,6 +320,25 @@ function CheckBadgeIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="icon-sm">
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
       <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+
+function GitHubIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="icon-sm">
+      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+    </svg>
+  );
+}
+
+function ThinkingIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="thinking-icon">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M7 8h2" />
+      <path d="M7 12h10" />
+      <path d="M7 16h6" />
     </svg>
   );
 }

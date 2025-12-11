@@ -59,8 +59,15 @@
   
   .kanban-column {
     flex: 1 1 0;
-    min-width: 280px;
-    max-width: 400px;
+    min-width: 260px;
+    max-width: none; /* Allow columns to grow */
+  }
+}
+
+/* Large screens: limit max width per column for readability */
+@media (min-width: 1600px) {
+  .kanban-column {
+    max-width: 380px;
   }
 }
 
@@ -110,18 +117,18 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 700;
   color: hsl(var(--foreground));
 }
 
 .column-emoji {
-  font-size: 1rem;
+  font-size: 1.125rem;
 }
 
 .column-icon {
-  width: 1rem;
-  height: 1rem;
+  width: 1.125rem;
+  height: 1.125rem;
   stroke-width: 2;
 }
 
@@ -133,14 +140,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.5rem;
-  height: 1.5rem;
+  min-width: 1.625rem;
+  height: 1.625rem;
   padding: 0 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 700;
   background: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--foreground));
   border-radius: 9999px;
+}
+
+/* Highlight count when column has items */
+.kanban-column:has(.ticket-card) .column-count {
+  background: hsl(var(--primary) / 0.15);
+  color: hsl(var(--primary));
 }
 
 .column-body {
@@ -647,57 +660,42 @@
   to { transform: rotate(360deg); }
 }
 
-/* PR Link - Compact with success color */
+/* PR Link - Legacy (now using icon button in footer) */
 .ticket-pr-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  background: hsl(var(--status-success) / 0.1);
-  border: 1px solid hsl(var(--status-success) / 0.2);
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: hsl(var(--status-success));
-  text-decoration: none;
-  width: fit-content;
-  transition: all 0.15s ease;
+  display: none; /* Hidden - using icon button instead */
 }
 
-.ticket-pr-link:hover {
-  background: hsl(var(--status-success) / 0.15);
-  border-color: hsl(var(--status-success) / 0.3);
-}
-
-/* AI Summary - Truncated with icon */
+/* AI Summary - Truncated to 3 lines with icon */
 .ticket-ai-summary {
   display: flex;
   align-items: flex-start;
   gap: 0.375rem;
-  padding: 0.5rem;
+  padding: 0.375rem 0.5rem;
   background: hsl(var(--muted) / 0.4);
   border-radius: 6px;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   line-height: 1.4;
   color: hsl(var(--muted-foreground));
+  max-height: 4rem; /* Limits overall height */
+  overflow: hidden;
 }
 
 .ticket-ai-summary span {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 .ticket-ai-summary svg {
   flex-shrink: 0;
-  margin-top: 0.125rem;
+  margin-top: 0.0625rem;
   color: hsl(var(--status-processing));
 }
 
 .ticket-ai-summary.error {
-  background: hsl(var(--status-error) / 0.1);
-  border: 1px solid hsl(var(--status-error) / 0.2);
+  background: hsl(var(--status-error) / 0.08);
+  border: 1px solid hsl(var(--status-error) / 0.15);
 }
 
 .ticket-ai-summary.error svg {
@@ -828,6 +826,52 @@
   background: hsl(var(--status-success) / 0.15);
   color: hsl(var(--status-success));
   border-radius: 9999px;
+}
+
+/* PR Icon Button in footer */
+.ticket-pr-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: hsl(var(--status-success) / 0.15);
+  color: hsl(var(--status-success));
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.ticket-pr-icon:hover {
+  background: hsl(var(--status-success) / 0.25);
+  transform: scale(1.1);
+}
+
+/* Thinking Indicator - Animated terminal icon */
+.ticket-thinking-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: hsl(var(--status-processing) / 0.2);
+  border: 1px solid hsl(var(--status-processing) / 0.3);
+  border-radius: 6px;
+  z-index: 10;
+}
+
+.thinking-icon {
+  width: 1rem;
+  height: 1rem;
+  color: hsl(var(--status-processing));
+  animation: terminal-blink 1.5s ease-in-out infinite;
+}
+
+@keyframes terminal-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 /* Delete Confirmation Modal */
