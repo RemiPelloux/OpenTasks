@@ -895,7 +895,7 @@ async function processAIResponse(context: vscode.ExtensionContext, aiResponse: a
     const projectId = ticketItem.projectId;
 
     // Build enhanced description
-    const enhancedDescription = `${aiResponse.enhancedDescription}
+    const enhancedDescription = `${ticket.description || aiResponse.enhancedDescription}
 
 ---
 
@@ -933,30 +933,51 @@ ${aiResponse.context.relatedFiles && aiResponse.context.relatedFiles.length > 0 
 ---
 *✨ Enhanced by Cursor AI via OpenTasks Extension*`;
 
-    // Copy to clipboard
-    await vscode.env.clipboard.writeText(enhancedDescription);
-
-    // Show success
-    const action = await vscode.window.showInformationMessage(
-      `✅ Enhanced description created for "${ticket.title}"!\n\n` +
-      `Complexity: ${aiResponse.analysis.complexity} | Time: ${aiResponse.analysis.estimatedTime}\n\n` +
-      `The enhanced description has been copied to your clipboard.`,
-      'Open in Browser',
-      'Show Preview'
+    // Show confirmation before updating
+    const confirm = await vscode.window.showInformationMessage(
+      `Update ticket "${ticket.title}" with AI insights?`,
+      { modal: true },
+      'Show Preview',
+      'Update Now'
     );
 
-    if (action === 'Open in Browser') {
-      const url = `${baseUrl}/project/${projectId}/board`;
-      vscode.env.openExternal(vscode.Uri.parse(url));
-    } else if (action === 'Show Preview') {
+    if (confirm === 'Show Preview') {
       showPreviewPanel(ticket, aiResponse, enhancedDescription);
+      
+      // Ask again after preview
+      const finalConfirm = await vscode.window.showInformationMessage(
+        'Proceed with update?',
+        'Update Now'
+      );
+      
+      if (finalConfirm !== 'Update Now') {
+        return;
+      }
+    } else if (confirm !== 'Update Now') {
+      return;
     }
+
+    // Update the ticket via API
+    const client = new OpenTasksClient(baseUrl, token);
+    await client.updateTicketDescription(projectId, ticket.id, enhancedDescription);
+
+    // Show success
+    vscode.window.showInformationMessage(
+      `✅ Ticket "${ticket.title}" updated successfully!\n\n` +
+      `Complexity: ${aiResponse.analysis.complexity} | Time: ${aiResponse.analysis.estimatedTime}`,
+      'Open in Browser'
+    ).then((action) => {
+      if (action === 'Open in Browser') {
+        const url = `${baseUrl}/project/${projectId}/board`;
+        vscode.env.openExternal(vscode.Uri.parse(url));
+      }
+    });
 
     // Refresh tree
     await treeProvider?.refresh();
 
   } catch (error) {
-    vscode.window.showErrorMessage(`Failed to process: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    vscode.window.showErrorMessage(`Failed to update ticket: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

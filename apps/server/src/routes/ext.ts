@@ -536,5 +536,84 @@ extRoutes.patch('/projects/:projectId/tickets/:ticketId/status', requireApiToken
   }
 });
 
+/**
+ * Update ticket description (and other fields)
+ * PATCH /api/ext/projects/:projectId/tickets/:ticketId
+ */
+extRoutes.patch('/projects/:projectId/tickets/:ticketId', requireApiToken, async (req, res) => {
+  try {
+    const userId = req.apiUser!.id;
+    const { projectId, ticketId } = req.params;
+    const { description, title, priority } = req.body;
+
+    if (!projectId || !ticketId) {
+      res.status(400).json({ error: 'Project ID and Ticket ID are required' });
+      return;
+    }
+
+    // Verify project access
+    const membership = await prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    if (!membership) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    // Build update data
+    const updateData: any = {};
+    if (description !== undefined) {
+      updateData.description = description;
+    }
+    if (title !== undefined) {
+      updateData.title = title;
+    }
+    if (priority !== undefined) {
+      updateData.priority = priority;
+    }
+
+    // Update ticket
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: updateData,
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Broadcast update via WebSocket
+    try {
+      const { wsService, toTicketBroadcast } = await import('../services/websocket.js');
+      wsService.ticketUpdated(projectId, toTicketBroadcast(updatedTicket));
+    } catch (err) {
+      console.error('Failed to broadcast ticket update:', err);
+    }
+
+    res.json({ ticket: updatedTicket });
+  } catch (error) {
+    console.error('Failed to update ticket:', error);
+    res.status(500).json({ error: 'Failed to update ticket' });
+  }
+});
+
 
 

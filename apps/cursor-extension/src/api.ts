@@ -137,6 +137,21 @@ export class OpenTasksClient {
     );
     return data.ticket;
   }
+
+  async updateTicketDescription(
+    projectId: string,
+    ticketId: string,
+    description: string
+  ): Promise<Ticket> {
+    const data = await this.request<{ ticket: Ticket }>(
+      `/api/ext/projects/${projectId}/tickets/${ticketId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ description }),
+      }
+    );
+    return data.ticket;
+  }
 }
 
 
