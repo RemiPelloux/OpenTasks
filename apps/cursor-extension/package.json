@@ -83,11 +83,6 @@
         "command": "opentasks.deleteTicket",
         "title": "Delete Ticket",
         "icon": "$(trash)"
-      },
-      {
-        "command": "opentasks.updateFromAI",
-        "title": "OpenTasks: Update Ticket from AI Response",
-        "icon": "$(sparkle)"
       }
     ],
     "viewsContainers": {
@@ -208,5 +203,6 @@
   },
   "dependencies": {}
 }
+
 
 

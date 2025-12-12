@@ -102,12 +102,6 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('opentasks.updateFromAI', async () => {
-      await updateTicketFromAI(context);
-    })
-  );
-
   // Start auto-refresh timer
   startRefreshTimer(context);
 
@@ -438,7 +432,7 @@ ${ticket.prLink ? `## Pull Request\n${ticket.prLink}` : ''}
 
 /**
  * Copy ticket with enhanced context and AI prompt for analysis
- * This creates a smart prompt for Cursor AI to analyze and enhance the ticket
+ * NOW MUCH SIMPLER: Just opens Cursor Chat with the prompt!
  */
 async function copyEnhancedTicket(item: any) {
   if (!item || !item.ticket) {
@@ -466,7 +460,7 @@ async function copyEnhancedTicket(item: any) {
 **Language:** ${document.languageId}
 **Line:** ${selection.start.line + 1}${selectedCode ? `-${selection.end.line + 1}` : ''}
 
-${selectedCode ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedCode}\n\`\`\`` : '**Note:** No code selected - consider selecting relevant code for better analysis'}
+${selectedCode ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedCode}\n\`\`\`` : '**Note:** No code selected'}
 `;
   }
 
@@ -474,20 +468,20 @@ ${selectedCode ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedCo
   let workspaceInfo = '';
   if (workspaceFolders && workspaceFolders.length > 0) {
     workspaceInfo = `
-## 🗂️ Workspace Context
-**Root Path:** \`${workspaceFolders[0].uri.fsPath}\`
+## 🗂️ Workspace
+**Path:** \`${workspaceFolders[0].uri.fsPath}\`
 **Project:** ${workspaceFolders[0].name}
 `;
   }
 
-  // Create the AI prompt with ticket info and context
-  const aiPrompt = `# 🎫 Ticket Analysis & Enhancement Request
+  // Create SIMPLE prompt - just ask AI to enhance the ticket!
+  const simplePrompt = `# 🎫 Analyze This Ticket
 
-## 📋 Ticket Details
-**ID:** ${ticket.id}
+## Ticket Details
 **Title:** ${ticket.title}
 **Priority:** ${ticket.priority}
 **Status:** ${ticket.status}
+**ID:** ${ticket.id}
 
 **Description:**
 ${ticket.description || 'No description provided'}
@@ -500,69 +494,141 @@ ${workspaceInfo}
 
 ---
 
-## 🤖 AI Task: Analyze and Enhance This Ticket
+## 🤖 Please Analyze and Enhance
 
-Please analyze the ticket above and provide a structured response in the following JSON format:
+Please provide a detailed analysis of this ticket including:
 
-\`\`\`json
-{
-  "analysis": {
-    "summary": "Brief summary of what needs to be done (2-3 sentences)",
-    "complexity": "LOW | MEDIUM | HIGH | CRITICAL",
-    "estimatedTime": "e.g., 2 hours, 1 day, etc.",
-    "risksAndChallenges": ["List any potential risks or challenges"]
-  },
-  "implementation": {
-    "approach": "Recommended approach to solve this",
-    "steps": [
-      "Step 1: ...",
-      "Step 2: ...",
-      "Step 3: ..."
-    ],
-    "filesToModify": [
-      "${filePath ? filePath : '/path/to/file1.ts'}",
-      "/path/to/file2.ts"
-    ],
-    "dependencies": ["Any dependencies or prerequisites"]
-  },
-  "context": {
-    "relatedFiles": ["Files that might be affected"],
-    "testStrategy": "How to test this change",
-    "hints": [
-      "Helpful hint 1",
-      "Helpful hint 2"
-    ]
-  },
-  "enhancedDescription": "A detailed, improved description for the ticket that includes technical details, context, and implementation notes"
-}
-\`\`\`
+1. **Summary** - What needs to be done (2-3 sentences)
+2. **Complexity** - Is this LOW, MEDIUM, HIGH, or CRITICAL?
+3. **Time Estimate** - How long will this take?
+4. **Implementation Steps** - Numbered list of what to do
+5. **Files to Modify** - Which files need changes? (use the file path above if relevant)
+6. **Risks & Challenges** - What could go wrong?
+7. **Helpful Hints** - Any gotchas or tips?
+8. **Test Strategy** - How to test this?
 
-**Additional Instructions:**
-1. If code is selected above, analyze it for potential issues or improvements
-2. Consider the file path and workspace context in your recommendations
-3. Be specific about which files need to be modified
-4. Include practical hints and gotchas
-5. The enhancedDescription should be suitable for updating the ticket
-
-**After you provide the JSON response, I'll automatically update the ticket with your insights!**
-`;
+Please be specific and actionable!`;
 
   // Copy to clipboard
-  await vscode.env.clipboard.writeText(aiPrompt);
+  await vscode.env.clipboard.writeText(simplePrompt);
   
-  // Show instruction to user
+  // Show simple instructions
   const action = await vscode.window.showInformationMessage(
-    '✨ Enhanced prompt copied! Paste in Cursor Chat (Cmd+L) and AI will analyze your ticket.',
+    '✨ Prompt copied! Now:\n\n' +
+    '1. Press Cmd+L (or Ctrl+L) to open Cursor Chat\n' +
+    '2. Paste (Cmd+V) and press Enter\n' +
+    '3. Read AI\'s analysis - that\'s it!\n\n' +
+    'No JSON, no complicated steps!',
     'Open Cursor Chat',
-    'Update Ticket with Response'
+    'Show Full Instructions'
   );
 
   if (action === 'Open Cursor Chat') {
     // Open Cursor chat
     vscode.commands.executeCommand('workbench.action.chat.open');
-  } else if (action === 'Update Ticket with Response') {
-    // Show instructions for updating ticket
-    await showTicketUpdateInstructions(item);
+  } else if (action === 'Show Full Instructions') {
+    const panel = vscode.window.createWebviewPanel(
+      'simpleInstructions',
+      'How to Use Enhanced Analysis',
+      vscode.ViewColumn.Beside,
+      {}
+    );
+
+    panel.webview.html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 30px;
+            line-height: 1.8;
+            color: var(--vscode-foreground);
+            background: var(--vscode-editor-background);
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          h1 { color: var(--vscode-textLink-foreground); font-size: 28px; }
+          h2 { color: var(--vscode-textLink-activeForeground); margin-top: 24px; font-size: 20px; }
+          .step {
+            background: var(--vscode-textCodeBlock-background);
+            padding: 20px;
+            margin: 16px 0;
+            border-radius: 8px;
+            border-left: 4px solid var(--vscode-textLink-foreground);
+          }
+          .step-number {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            background: var(--vscode-textLink-foreground);
+            color: var(--vscode-textCodeBlock-background);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: bold;
+            margin-right: 12px;
+          }
+          code {
+            background: var(--vscode-textCodeBlock-background);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+          }
+          .emoji { font-size: 1.4em; }
+        </style>
+      </head>
+      <body>
+        <h1>✨ Super Simple AI Analysis</h1>
+        
+        <p style="font-size: 18px; color: var(--vscode-textLink-foreground);">
+          No complicated JSON! Just 3 easy steps:
+        </p>
+
+        <div class="step">
+          <span class="step-number">1</span>
+          <strong>Open Cursor Chat</strong><br>
+          Press <code>Cmd+L</code> (Mac) or <code>Ctrl+L</code> (Windows/Linux)
+        </div>
+
+        <div class="step">
+          <span class="step-number">2</span>
+          <strong>Paste & Send</strong><br>
+          Press <code>Cmd+V</code> (or <code>Ctrl+V</code>) to paste the prompt, then press <code>Enter</code>
+        </div>
+
+        <div class="step">
+          <span class="step-number">3</span>
+          <strong>Read AI's Analysis</strong><br>
+          That's it! AI will give you a detailed breakdown in plain English.
+        </div>
+
+        <h2>💡 What AI Will Tell You:</h2>
+        <ul>
+          <li>📝 <strong>Summary</strong> - What needs to be done</li>
+          <li>⚡ <strong>Complexity</strong> - How hard is this?</li>
+          <li>⏱️ <strong>Time Estimate</strong> - How long will it take?</li>
+          <li>🔨 <strong>Implementation Steps</strong> - What to do, in order</li>
+          <li>📁 <strong>Files to Modify</strong> - Which files to change</li>
+          <li>⚠️ <strong>Risks</strong> - What could go wrong</li>
+          <li>💡 <strong>Hints</strong> - Helpful tips and gotchas</li>
+          <li>🧪 <strong>Test Strategy</strong> - How to test it</li>
+        </ul>
+
+        <h2>🎯 Pro Tip:</h2>
+        <p>
+          Before right-clicking the ticket, <strong>select relevant code</strong> in your file.
+          AI will see the code and give more specific advice!
+        </p>
+
+        <hr style="margin: 30px 0; border: 1px solid var(--vscode-widget-border);">
+        
+        <p style="text-align: center; color: var(--vscode-descriptionForeground);">
+          <strong>No JSON copying!</strong> Just chat with AI like normal! 🎉
+        </p>
+      </body>
+      </html>
+    `;
   }
 }
 
@@ -969,3 +1035,4 @@ ${aiResponse.context.relatedFiles && aiResponse.context.relatedFiles.length > 0 
     vscode.window.showErrorMessage(`Failed to process AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
+
