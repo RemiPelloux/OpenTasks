@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Test script for OpenTasks Extension API
+# This will test the deployment
+
+BASE_URL="https://www.opentasks.fr"
+
+echo "==================================="
+echo "OpenTasks Extension API - Test Plan"
+echo "==================================="
+echo ""
+
+echo "📝 Instructions:"
+echo "1. Login to OpenTasks: ${BASE_URL}"
+echo "2. Go to Settings page"
+echo "3. Scroll to 'API Tokens' section"
+echo "4. Create a new token with name 'Test'"
+echo "5. Copy the token"
+echo "6. Run these commands:"
+echo ""
+echo "-----------------------------------"
+echo "# Set your token"
+echo "export TOKEN='paste-your-token-here'"
+echo ""
+echo "# Test 1: Get current user"
+echo "curl -X GET ${BASE_URL}/api/ext/me \\"
+echo "  -H \"Authorization: Bearer \$TOKEN\" \\"
+echo "  -H \"Content-Type: application/json\""
+echo ""
+echo "# Test 2: List projects"
+echo "curl -X GET ${BASE_URL}/api/ext/projects \\"
+echo "  -H \"Authorization: Bearer \$TOKEN\" \\"
+echo "  -H \"Content-Type: application/json\""
+echo ""
+echo "# Test 3: List tickets for a project (replace PROJECT_ID)"
+echo "curl -X GET ${BASE_URL}/api/ext/projects/PROJECT_ID/tickets \\"
+echo "  -H \"Authorization: Bearer \$TOKEN\" \\"
+echo "  -H \"Content-Type: application/json\""
+echo ""
+echo "# Test 4: Create a ticket (replace PROJECT_ID)"
+echo "curl -X POST ${BASE_URL}/api/ext/projects/PROJECT_ID/tickets \\"
+echo "  -H \"Authorization: Bearer \$TOKEN\" \\"
+echo "  -H \"Content-Type: application/json\" \\"
+echo "  -d '{
+    \"title\": \"Test ticket from API\",
+    \"description\": \"This is a test ticket created via the extension API\",
+    \"status\": \"TODO\",
+    \"priority\": \"MEDIUM\"
+  }'"
+echo ""
+echo "-----------------------------------"
+echo ""
+echo "✅ If all tests return JSON (not HTML/errors), the API is working!"
+echo ""
+echo "🔧 Extension Testing:"
+echo "1. Build extension: cd apps/cursor-extension && pnpm run build && pnpm run package"
+echo "2. Install .vsix in Cursor"
+echo "3. Run 'OpenTasks: Sign In' command"
+echo "4. Paste your token"
+echo "5. Open OpenTasks sidebar"
+echo "6. Verify projects/tickets load"
+echo ""

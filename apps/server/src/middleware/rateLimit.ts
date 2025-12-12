@@ -7,6 +7,30 @@ import rateLimit from 'express-rate-limit';
 import type { Request, Response, NextFunction } from 'express';
 import { config } from '../config/index.js';
 
+/**
+ * Get client identifier for rate limiting
+ * Uses user ID if authenticated, otherwise IP address
+ */
+function getClientKey(req: Request): string {
+  // Prefer user ID if authenticated
+  if (req.session?.user?.id) {
+    return `user:${req.session.user.id}`;
+  }
+  
+  // Prefer API user if using token auth
+  if (req.apiUser?.id) {
+    return `api:${req.apiUser.id}`;
+  }
+  
+  // Fall back to IP address (with proper IPv6 handling)
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = typeof forwarded === 'string' 
+    ? forwarded.split(',')[0]?.trim()
+    : req.socket?.remoteAddress || 'unknown';
+  
+  return `ip:${ip}`;
+}
+
 // Rate limit configurations
 const RATE_LIMITS = {
   // Authentication endpoints - strict limit
@@ -51,10 +75,7 @@ function createLimiter(limitConfig: typeof RATE_LIMITS[keyof typeof RATE_LIMITS]
     message: { error: limitConfig.message },
     standardHeaders: true, // Return rate limit info in headers
     legacyHeaders: false,
-    keyGenerator: (req: Request) => {
-      // Use user ID if authenticated, otherwise IP
-      return req.session?.user?.id || req.ip || 'unknown';
-    },
+    keyGenerator: getClientKey,
     skip: () => !config.isProduction, // Skip in development
     handler: (_req: Request, res: Response) => {
       res.status(429).json({ error: limitConfig.message });
@@ -114,6 +135,7 @@ export const globalLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: getClientKey,
   skip: () => !config.isProduction,
 });
 

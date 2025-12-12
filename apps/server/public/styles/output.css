@@ -1036,6 +1036,10 @@ body {
   flex-shrink: 1;
 }
 
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
 .shrink-0 {
   flex-shrink: 0;
 }
@@ -1308,6 +1312,10 @@ body {
   border-color: hsl(var(--status-success) / 0.5);
 }
 
+.border-yellow-500\/20 {
+  border-color: rgb(234 179 8 / 0.2);
+}
+
 .border-t-foreground {
   border-top-color: hsl(var(--foreground));
 }
@@ -1418,6 +1426,10 @@ body {
 
 .bg-status-success\/10 {
   background-color: hsl(var(--status-success) / 0.1);
+}
+
+.bg-yellow-500\/10 {
+  background-color: rgb(234 179 8 / 0.1);
 }
 
 .bg-yellow-500\/20 {
@@ -1736,6 +1748,10 @@ body {
 
 .opacity-25 {
   opacity: 0.25;
+}
+
+.opacity-60 {
+  opacity: 0.6;
 }
 
 .opacity-70 {

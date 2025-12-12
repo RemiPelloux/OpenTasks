@@ -56,11 +56,11 @@ export function configureRoutes(app: Express): void {
   // Documentation routes (public)
   app.use('/docs', docsRoutes);
 
+  // Extension API routes (token-based auth) - MUST be before /api
+  app.use('/api/ext', extRoutes);
+
   // Internal API routes (protected)
   app.use('/api', apiRoutes);
-
-  // Extension API routes (token-based auth)
-  app.use('/api/ext', extRoutes);
 
   // Ticket API routes (protected)
   app.use('/api/tickets', ticketRoutes);
