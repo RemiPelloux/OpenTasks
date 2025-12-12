@@ -86,7 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('opentasks.copyEnhanced', async (item) => {
-      await copyEnhancedTicket(item);
+      await copyEnhancedTicket(context, item);
     })
   );
 
@@ -440,7 +440,7 @@ ${ticket.prLink ? `## Pull Request\n${ticket.prLink}` : ''}
  * Copy ticket with enhanced context and AI prompt for analysis
  * This creates a smart prompt for Cursor AI to analyze and enhance the ticket
  */
-async function copyEnhancedTicket(item: any) {
+async function copyEnhancedTicket(context: vscode.ExtensionContext, item: any) {
   if (!item || !item.ticket) {
     return;
   }
