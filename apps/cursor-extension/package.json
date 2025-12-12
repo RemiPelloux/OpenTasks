@@ -1,9 +1,14 @@
 {
   "name": "opentasks",
   "displayName": "OpenTasks",
-  "description": "Manage your OpenTasks tickets directly from Cursor IDE",
+  "description": "AI-powered Kanban board - Create tickets, queue AI agents, and manage projects directly from Cursor IDE",
   "version": "0.1.0",
   "publisher": "opentasks",
+  "icon": "resources/logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RemiPelloux/OpenTasks"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
