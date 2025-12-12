@@ -14,6 +14,11 @@ import { Redis } from 'ioredis';
 import { doubleCsrf } from 'csrf-csrf';
 import { config } from '../config/index.js';
 
+// Export auth middleware
+export { requireAuth, requireAdmin, requireSuperAdmin, requireProjectAccess, guestOnly } from './auth.js';
+export { requireApiToken, optionalApiToken, generateToken as generateApiToken, hashToken } from './apiToken.js';
+export type { ApiUser } from './apiToken.js';
+
 export async function configureMiddleware(app: Express): Promise<void> {
   // Security headers - relaxed for IP-based access without HTTPS
   // When accessed via IP (not HTTPS), strict CORS headers break resources
@@ -104,6 +109,10 @@ export async function configureMiddleware(app: Express): Promise<void> {
     }
     // Skip for webhook endpoints (they use their own auth)
     if (req.path.startsWith('/api/webhooks')) {
+      return next();
+    }
+    // Skip for extension API endpoints (they use Bearer token auth)
+    if (req.path.startsWith('/api/ext/')) {
       return next();
     }
     return doubleCsrfProtection(req, res, next);

@@ -1,0 +1,120 @@
+{
+  "name": "opentasks",
+  "displayName": "OpenTasks",
+  "description": "Manage your OpenTasks tickets directly from Cursor IDE",
+  "version": "0.1.0",
+  "publisher": "opentasks",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "opentasks.signIn",
+        "title": "OpenTasks: Sign In"
+      },
+      {
+        "command": "opentasks.signOut",
+        "title": "OpenTasks: Sign Out"
+      },
+      {
+        "command": "opentasks.createTicket",
+        "title": "OpenTasks: Create Ticket",
+        "icon": "$(add)"
+      },
+      {
+        "command": "opentasks.refresh",
+        "title": "OpenTasks: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "opentasks.openInBrowser",
+        "title": "OpenTasks: Open in Browser",
+        "icon": "$(link-external)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "opentasks",
+          "title": "OpenTasks",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "opentasks": [
+        {
+          "id": "opentasksProjects",
+          "name": "Projects",
+          "icon": "resources/icon.svg",
+          "contextualTitle": "OpenTasks"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "opentasksProjects",
+        "contents": "Sign in to OpenTasks to view your projects.\n[Sign In](command:opentasks.signIn)\nDon't have an account? [Create one](https://www.opentasks.fr/register)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "opentasks.refresh",
+          "when": "view == opentasksProjects",
+          "group": "navigation"
+        },
+        {
+          "command": "opentasks.createTicket",
+          "when": "view == opentasksProjects",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "opentasks.openInBrowser",
+          "when": "view == opentasksProjects && viewItem == ticket",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "OpenTasks",
+      "properties": {
+        "opentasks.baseUrl": {
+          "type": "string",
+          "default": "https://www.opentasks.fr",
+          "description": "Base URL of your OpenTasks instance"
+        },
+        "opentasks.refreshInterval": {
+          "type": "number",
+          "default": 10,
+          "description": "Refresh interval in seconds (0 to disable auto-refresh)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run build",
+    "build": "tsup src/extension.ts --format cjs --external vscode --minify",
+    "dev": "tsup src/extension.ts --format cjs --external vscode --watch",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.25",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.22.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {}
+}

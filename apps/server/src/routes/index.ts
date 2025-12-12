@@ -11,6 +11,7 @@ import { ticketRoutes } from './tickets.js';
 import { webhookRoutes } from './webhooks.js';
 import { adminRoutes } from './admin.js';
 import { apiRoutes } from './api.js';
+import { extRoutes } from './ext.js';
 import { settingsRoutes } from './settings.js';
 import { docsRoutes } from './docs.js';
 import { healthRoutes } from './health.js';
@@ -57,6 +58,9 @@ export function configureRoutes(app: Express): void {
 
   // Internal API routes (protected)
   app.use('/api', apiRoutes);
+
+  // Extension API routes (token-based auth)
+  app.use('/api/ext', extRoutes);
 
   // Ticket API routes (protected)
   app.use('/api/tickets', ticketRoutes);

@@ -261,6 +261,18 @@ model InviteCode {
   // ... relations
 }
 
+model ApiToken {
+  id         String    @id @default(cuid())
+  name       String    // User-defined name (e.g., "Cursor Extension")
+  tokenHash  String    @unique  // SHA-256 hash of token
+  last4      String    // Last 4 chars for display
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  userId     String
+  // ... relations
+}
+
 // Projects
 model Project {
   id                    String   @id @default(cuid())
@@ -438,6 +450,131 @@ guestOnly            // Must NOT be logged in (login/register pages)
 |--------|------|-------------|
 | POST | `/api/webhooks/cursor` | Cursor status updates |
 | GET | `/api/webhooks/health` | Health check |
+
+### Extension API (`/api/ext/*`)
+
+**Authentication:** Bearer token (Personal Access Token) in `Authorization` header.
+
+#### Token Management (Web UI, Session Auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/ext/tokens` | Create a new API token |
+| GET | `/api/ext/tokens` | List user's API tokens |
+| DELETE | `/api/ext/tokens/:tokenId` | Revoke an API token |
+
+#### Extension Endpoints (PAT Auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/ext/me` | Get current user info |
+| GET | `/api/ext/projects` | List user's projects |
+| GET | `/api/ext/projects/:projectId/tickets` | List tickets (optionally filter by status) |
+| POST | `/api/ext/projects/:projectId/tickets` | Create a new ticket |
+| PATCH | `/api/ext/projects/:projectId/tickets/:ticketId/status` | Update ticket status |
+
+#### API Token Authentication Flow
+
+1. **Generate Token (Web UI):**
+   - User navigates to Settings → API Tokens
+   - Creates token with name and optional expiry
+   - Token is shown **once** (SHA-256 hashed before storage)
+
+2. **Use Token (Extension/API):**
+   ```http
+   Authorization: Bearer <token>
+   ```
+
+3. **Token Validation:**
+   - Hash incoming token with SHA-256
+   - Look up `tokenHash` in `api_tokens` table
+   - Check: not revoked, not expired, user active
+   - Attach `req.apiUser` (userId, email, name, role)
+
+4. **Token Security:**
+   - Tokens stored as SHA-256 hash (one-way)
+   - Last 4 characters saved for display
+   - `lastUsedAt` updated on each request
+   - Can be revoked by user anytime
+
+#### Example API Requests
+
+**Create Ticket:**
+```bash
+curl -X POST https://www.opentasks.fr/api/ext/projects/{projectId}/tickets \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Fix login bug",
+    "description": "Users cant login with email",
+    "status": "TODO",
+    "priority": "HIGH",
+    "targetBranch": "main"
+  }'
+```
+
+**List Tickets:**
+```bash
+curl https://www.opentasks.fr/api/ext/projects/{projectId}/tickets?status=TODO,AI_PROCESSING \
+  -H "Authorization: Bearer <your-token>"
+```
+
+---
+
+## Cursor Extension
+
+The official Cursor IDE extension allows developers to manage OpenTasks tickets without leaving their editor.
+
+### Architecture
+
+```
+Cursor/VS Code
+├── Extension (TypeScript)
+│   ├── API Client (fetch with Bearer token)
+│   ├── TreeDataProvider (Projects → Columns → Tickets)
+│   ├── Commands (Sign In, Create Ticket, Refresh)
+│   └── SecretStorage (PAT storage)
+└── OpenTasks Server
+    └── Extension API (/api/ext/*)
+```
+
+### Features
+
+- **Authentication:** Secure PAT storage in VS Code SecretStorage
+- **Tree View:** Browse projects/columns/tickets in sidebar
+- **Create Tickets:** Quick create from command palette
+- **Auto-refresh:** Configurable polling (default: 10s)
+- **Click to Open:** Opens ticket in browser
+
+### Setup
+
+1. Install extension from `.vsix` or marketplace
+2. Generate API token in OpenTasks Settings
+3. Run command: `OpenTasks: Sign In`
+4. Paste token when prompted
+
+### Configuration
+
+```json
+{
+  "opentasks.baseUrl": "https://www.opentasks.fr",
+  "opentasks.refreshInterval": 10
+}
+```
+
+### Development
+
+```bash
+cd apps/cursor-extension
+pnpm install
+pnpm run build    # Compile TypeScript
+pnpm run package  # Create .vsix
+```
+
+**Local Installation:**
+- Build extension
+- In Cursor: Extensions → "..." → Install from VSIX
+- Select generated `.vsix` file
 
 ---
 

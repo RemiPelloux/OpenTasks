@@ -66,6 +66,75 @@ const bodyContent = `
     </div>
   </div>
   
+  <!-- API Tokens Section (for Cursor Extension) -->
+  <div class="rounded-lg border bg-card mt-6">
+    <div class="p-6 border-b">
+      <h3 class="font-semibold flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        API Tokens
+      </h3>
+      <p class="text-sm text-muted-foreground">Personal access tokens for Cursor extension and API integrations</p>
+    </div>
+    <div class="p-6 space-y-6">
+      <!-- Create New Token Form -->
+      <form id="create-token-form" class="space-y-4 p-4 rounded-md border border-dashed">
+        <h4 class="font-medium text-sm">Create New Token</h4>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-2">
+            <label for="tokenName" class="text-sm font-medium leading-none">Token Name</label>
+            <input type="text" id="tokenName" name="tokenName" placeholder="e.g., Cursor Extension - Work Laptop" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" required>
+            <p class="text-xs text-muted-foreground">A descriptive name for this token</p>
+          </div>
+          <div class="space-y-2">
+            <label for="tokenExpiry" class="text-sm font-medium leading-none">Expiration</label>
+            <select id="tokenExpiry" name="tokenExpiry" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+              <option value="">Never</option>
+              <option value="7">7 days</option>
+              <option value="30">30 days</option>
+              <option value="90" selected>90 days</option>
+              <option value="365">1 year</option>
+            </select>
+            <p class="text-xs text-muted-foreground">When this token should expire</p>
+          </div>
+        </div>
+        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 mr-2"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+          Generate Token
+        </button>
+      </form>
+
+      <!-- New Token Display (shown after creation) -->
+      <div id="new-token-display" class="hidden p-4 rounded-md bg-yellow-500/10 border border-yellow-500/20">
+        <div class="flex gap-3 mb-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-500/20 text-yellow-400 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-yellow-400 mb-1">Save this token now!</p>
+            <p class="text-sm text-muted-foreground mb-3">This token will only be shown once. Copy it now.</p>
+            <div class="flex gap-2">
+              <input type="text" id="new-token-value" readonly class="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm font-mono ring-offset-background">
+              <button type="button" id="copy-token-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4">
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token List -->
+      <div id="token-list" class="space-y-2">
+        <h4 class="font-medium text-sm text-muted-foreground">Your Tokens</h4>
+        <div id="tokens-container" class="space-y-2">
+          <!-- Tokens loaded dynamically -->
+          <div class="p-4 rounded-md bg-muted text-center text-sm text-muted-foreground">
+            Loading tokens...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <!-- Profile Settings -->
   <div class="rounded-lg border bg-card mt-6">
     <div class="p-6 border-b">
@@ -173,6 +242,162 @@ const bodyContent = `
       testKeyBtn.textContent = 'Test Key';
     }
   });
+  
+  // ===== API Tokens Management =====
+  
+  const createTokenForm = document.getElementById('create-token-form');
+  const newTokenDisplay = document.getElementById('new-token-display');
+  const newTokenValue = document.getElementById('new-token-value');
+  const copyTokenBtn = document.getElementById('copy-token-btn');
+  const tokensContainer = document.getElementById('tokens-container');
+  
+  // Load existing tokens
+  async function loadTokens() {
+    try {
+      const response = await fetch('/api/ext/tokens', {
+        headers: { 'X-CSRF-Token': csrfToken }
+      });
+      
+      if (!response.ok) throw new Error('Failed to load tokens');
+      
+      const data = await response.json();
+      const tokens = data.tokens || [];
+      
+      if (tokens.length === 0) {
+        tokensContainer.innerHTML = '<div class="p-4 rounded-md bg-muted text-center text-sm text-muted-foreground">No tokens created yet</div>';
+        return;
+      }
+      
+      tokensContainer.innerHTML = tokens.map(token => {
+        const isRevoked = token.revokedAt;
+        const isExpired = token.expiresAt && new Date(token.expiresAt) < new Date();
+        const isInactive = isRevoked || isExpired;
+        
+        return \`
+          <div class="flex items-center justify-between p-4 rounded-md border \${isInactive ? 'bg-muted opacity-60' : 'bg-card'}">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <p class="font-medium text-sm">\${token.name}</p>
+                \${isRevoked ? '<span class="text-xs inline-flex items-center rounded-full border px-2 py-0.5 bg-destructive/10 text-destructive">Revoked</span>' : ''}
+                \${isExpired ? '<span class="text-xs inline-flex items-center rounded-full border px-2 py-0.5 bg-yellow-500/10 text-yellow-400">Expired</span>' : ''}
+              </div>
+              <div class="flex gap-4 text-xs text-muted-foreground">
+                <span>••••\${token.last4}</span>
+                <span>Created: \${new Date(token.createdAt).toLocaleDateString()}</span>
+                \${token.expiresAt ? \`<span>Expires: \${new Date(token.expiresAt).toLocaleDateString()}</span>\` : '<span>No expiration</span>'}
+                \${token.lastUsedAt ? \`<span>Last used: \${new Date(token.lastUsedAt).toLocaleDateString()}</span>\` : '<span>Never used</span>'}
+              </div>
+            </div>
+            \${!isRevoked ? \`
+              <button type="button" class="revoke-token-btn inline-flex items-center justify-center rounded-md text-sm font-medium border border-destructive/50 text-destructive hover:bg-destructive/10 h-9 px-3" data-token-id="\${token.id}" data-token-name="\${token.name}">
+                Revoke
+              </button>
+            \` : ''}
+          </div>
+        \`;
+      }).join('');
+      
+      // Add revoke handlers
+      document.querySelectorAll('.revoke-token-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const tokenId = this.dataset.tokenId;
+          const tokenName = this.dataset.tokenName;
+          
+          if (!confirm(\`Revoke token "\${tokenName}"? This cannot be undone.\`)) return;
+          
+          try {
+            const response = await fetch(\`/api/ext/tokens/\${tokenId}\`, {
+              method: 'DELETE',
+              headers: { 'X-CSRF-Token': csrfToken }
+            });
+            
+            if (!response.ok) throw new Error('Failed to revoke token');
+            
+            if (window.showToast) {
+              window.showToast('Token revoked successfully', 'success');
+            }
+            
+            loadTokens();
+          } catch (error) {
+            if (window.showToast) {
+              window.showToast(error.message, 'error');
+            }
+          }
+        });
+      });
+    } catch (error) {
+      tokensContainer.innerHTML = '<div class="p-4 rounded-md bg-destructive/10 text-center text-sm text-destructive">Failed to load tokens</div>';
+    }
+  }
+  
+  // Create new token
+  createTokenForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const name = formData.get('tokenName');
+    const expiresInDays = formData.get('tokenExpiry');
+    
+    try {
+      const response = await fetch('/api/ext/tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({
+          name,
+          expiresInDays: expiresInDays ? parseInt(expiresInDays) : null
+        })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create token');
+      }
+      
+      const data = await response.json();
+      
+      // Show the new token
+      newTokenValue.value = data.token;
+      newTokenDisplay.classList.remove('hidden');
+      
+      // Reset form
+      this.reset();
+      
+      // Reload tokens list
+      loadTokens();
+      
+      // Scroll to show the token
+      newTokenDisplay.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (error) {
+      if (window.showToast) {
+        window.showToast(error.message, 'error');
+      }
+    }
+  });
+  
+  // Copy token to clipboard
+  copyTokenBtn.addEventListener('click', function() {
+    newTokenValue.select();
+    navigator.clipboard.writeText(newTokenValue.value).then(() => {
+      this.textContent = 'Copied!';
+      setTimeout(() => {
+        this.textContent = 'Copy';
+      }, 2000);
+      
+      if (window.showToast) {
+        window.showToast('Token copied to clipboard', 'success');
+      }
+    }).catch(() => {
+      if (window.showToast) {
+        window.showToast('Failed to copy token', 'error');
+      }
+    });
+  });
+  
+  // Initial load
+  loadTokens();
 })();
 </script>
 `;
