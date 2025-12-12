@@ -35,6 +35,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "opentasks.createProject",
+        "title": "OpenTasks: Create New Project",
+        "icon": "$(new-folder)"
+      },
+      {
         "command": "opentasks.refresh",
         "title": "OpenTasks: Refresh",
         "icon": "$(refresh)"
@@ -43,6 +48,41 @@
         "command": "opentasks.openInBrowser",
         "title": "OpenTasks: Open in Browser",
         "icon": "$(link-external)"
+      },
+      {
+        "command": "opentasks.moveToHandle",
+        "title": "Move to Handle (AI Agent)",
+        "icon": "$(robot)"
+      },
+      {
+        "command": "opentasks.moveToTodo",
+        "title": "Move to To Do",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "opentasks.moveToDone",
+        "title": "Move to Done",
+        "icon": "$(check)"
+      },
+      {
+        "command": "opentasks.copyTicket",
+        "title": "Copy Ticket Details",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "opentasks.copyEnhanced",
+        "title": "Copy & Enhance with Context",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "opentasks.editTicket",
+        "title": "Edit Ticket",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "opentasks.deleteTicket",
+        "title": "Delete Ticket",
+        "icon": "$(trash)"
       }
     ],
     "viewsContainers": {
@@ -75,12 +115,17 @@
         {
           "command": "opentasks.refresh",
           "when": "view == opentasksProjects",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "opentasks.createTicket",
           "when": "view == opentasksProjects",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "opentasks.createProject",
+          "when": "view == opentasksProjects",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -88,6 +133,41 @@
           "command": "opentasks.openInBrowser",
           "when": "view == opentasksProjects && viewItem == ticket",
           "group": "inline"
+        },
+        {
+          "command": "opentasks.editTicket",
+          "when": "view == opentasksProjects && viewItem == ticket",
+          "group": "1_edit@1"
+        },
+        {
+          "command": "opentasks.copyTicket",
+          "when": "view == opentasksProjects && viewItem == ticket",
+          "group": "2_copy@1"
+        },
+        {
+          "command": "opentasks.copyEnhanced",
+          "when": "view == opentasksProjects && viewItem == ticket",
+          "group": "2_copy@2"
+        },
+        {
+          "command": "opentasks.moveToHandle",
+          "when": "view == opentasksProjects && viewItem == ticket",
+          "group": "3_move@1"
+        },
+        {
+          "command": "opentasks.moveToTodo",
+          "when": "view == opentasksProjects && viewItem == ticket",
+          "group": "3_move@2"
+        },
+        {
+          "command": "opentasks.moveToDone",
+          "when": "view == opentasksProjects && viewItem == ticket",
+          "group": "3_move@3"
+        },
+        {
+          "command": "opentasks.deleteTicket",
+          "when": "view == opentasksProjects && viewItem == ticket",
+          "group": "4_delete@1"
         }
       ]
     },

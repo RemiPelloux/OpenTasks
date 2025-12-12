@@ -53,6 +53,55 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // New commands for context menu actions
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.createProject', async () => {
+      await createProject(context);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.moveToHandle', async (item) => {
+      await moveTicket(context, item, 'HANDLE', 'AI Agent');
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.moveToTodo', async (item) => {
+      await moveTicket(context, item, 'TODO', 'To Do');
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.moveToDone', async (item) => {
+      await moveTicket(context, item, 'DONE', 'Done');
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.copyTicket', async (item) => {
+      await copyTicketDetails(item);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.copyEnhanced', async (item) => {
+      await copyEnhancedTicket(item);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.editTicket', async (item) => {
+      await editTicket(context, item);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.deleteTicket', async (item) => {
+      await deleteTicket(context, item);
+    })
+  );
+
   // Start auto-refresh timer
   startRefreshTimer(context);
 
@@ -270,5 +319,266 @@ async function createTicket(context: vscode.ExtensionContext) {
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * Create project command
+ */
+async function createProject(context: vscode.ExtensionContext) {
+  const token = await context.secrets.get(TOKEN_KEY);
+  const baseUrl = context.globalState.get<string>(BASE_URL_KEY, 'https://www.opentasks.fr');
+
+  if (!token) {
+    vscode.window.showErrorMessage('You must sign in first');
+    return;
+  }
+
+  // Get project name
+  const name = await vscode.window.showInputBox({
+    prompt: 'Project Name',
+    placeHolder: 'e.g., My Awesome Project',
+    validateInput: (value) => {
+      if (!value.trim()) {
+        return 'Project name is required';
+      }
+      return null;
+    }
+  });
+
+  if (!name) {
+    return;
+  }
+
+  // Get description (optional)
+  const description = await vscode.window.showInputBox({
+    prompt: 'Project Description (optional)',
+    placeHolder: 'Describe your project...',
+  });
+
+  // Get default branch
+  const defaultBranch = await vscode.window.showInputBox({
+    prompt: 'Default Branch',
+    value: 'main',
+    placeHolder: 'main',
+  });
+
+  vscode.window.showInformationMessage(
+    `⚠️ Note: Project creation is currently only available through the web UI at ${baseUrl}`,
+    'Open Web UI'
+  ).then((action) => {
+    if (action === 'Open Web UI') {
+      vscode.env.openExternal(vscode.Uri.parse(`${baseUrl}/dashboard`));
+    }
+  });
+}
+
+/**
+ * Move ticket to a different column
+ */
+async function moveTicket(
+  context: vscode.ExtensionContext,
+  item: any,
+  status: string,
+  statusName: string
+) {
+  const token = await context.secrets.get(TOKEN_KEY);
+  const baseUrl = context.globalState.get<string>(BASE_URL_KEY, 'https://www.opentasks.fr');
+
+  if (!token || !item || !item.ticket) {
+    return;
+  }
+
+  try {
+    const client = new OpenTasksClient(baseUrl, token);
+    await client.updateTicketStatus(item.projectId, item.ticket.id, status);
+
+    vscode.window.showInformationMessage(
+      `Ticket moved to ${statusName}${status === 'HANDLE' ? ' (AI Agent will process it)' : ''}`
+    );
+
+    // Refresh tree
+    await treeProvider?.refresh();
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to move ticket: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Copy ticket details to clipboard
+ */
+async function copyTicketDetails(item: any) {
+  if (!item || !item.ticket) {
+    return;
+  }
+
+  const ticket = item.ticket;
+  const text = `# ${ticket.title}
+
+**Priority:** ${ticket.priority}
+**Status:** ${ticket.status}
+**ID:** ${ticket.id}
+
+## Description
+${ticket.description || 'No description'}
+
+${ticket.aiSummary ? `## AI Summary\n${ticket.aiSummary}` : ''}
+
+${ticket.prLink ? `## Pull Request\n${ticket.prLink}` : ''}
+`;
+
+  await vscode.env.clipboard.writeText(text);
+  vscode.window.showInformationMessage('Ticket details copied to clipboard');
+}
+
+/**
+ * Copy ticket with enhanced context (file paths, workspace info)
+ */
+async function copyEnhancedTicket(item: any) {
+  if (!item || !item.ticket) {
+    return;
+  }
+
+  const ticket = item.ticket;
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  const activeEditor = vscode.window.activeTextEditor;
+
+  // Get current file context
+  let fileContext = '';
+  if (activeEditor) {
+    const document = activeEditor.document;
+    const selection = activeEditor.selection;
+    const selectedText = document.getText(selection);
+
+    fileContext = `
+## Current File Context
+**File:** ${document.fileName}
+**Language:** ${document.languageId}
+${selectedText ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedText}\n\`\`\`` : ''}
+`;
+  }
+
+  // Get workspace info
+  let workspaceInfo = '';
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    workspaceInfo = `
+## Workspace
+**Path:** ${workspaceFolders[0].uri.fsPath}
+**Name:** ${workspaceFolders[0].name}
+`;
+  }
+
+  const enhancedText = `# ${ticket.title}
+
+**Priority:** ${ticket.priority}
+**Status:** ${ticket.status}
+**ID:** ${ticket.id}
+
+## Description
+${ticket.description || 'No description'}
+
+${fileContext}
+
+${workspaceInfo}
+
+${ticket.aiSummary ? `## AI Summary\n${ticket.aiSummary}` : ''}
+
+---
+*Enhanced ticket details with context from Cursor IDE*
+`;
+
+  await vscode.env.clipboard.writeText(enhancedText);
+  vscode.window.showInformationMessage('Enhanced ticket details copied to clipboard! 🚀');
+}
+
+/**
+ * Edit ticket inline
+ */
+async function editTicket(context: vscode.ExtensionContext, item: any) {
+  const token = await context.secrets.get(TOKEN_KEY);
+  const baseUrl = context.globalState.get<string>(BASE_URL_KEY, 'https://www.opentasks.fr');
+
+  if (!token || !item || !item.ticket) {
+    return;
+  }
+
+  const ticket = item.ticket;
+
+  // Edit title
+  const newTitle = await vscode.window.showInputBox({
+    prompt: 'Edit Ticket Title',
+    value: ticket.title,
+    validateInput: (value) => {
+      if (!value.trim()) {
+        return 'Title is required';
+      }
+      return null;
+    }
+  });
+
+  if (!newTitle) {
+    return;
+  }
+
+  // Edit description
+  const newDescription = await vscode.window.showInputBox({
+    prompt: 'Edit Description (optional)',
+    value: ticket.description || '',
+    placeHolder: 'Ticket description...',
+  });
+
+  // Update priority
+  const priorities = [
+    { label: 'Low', value: 'LOW' },
+    { label: 'Medium', value: 'MEDIUM' },
+    { label: 'High', value: 'HIGH' },
+    { label: 'Urgent', value: 'URGENT' },
+  ];
+
+  const currentPriority = priorities.find(p => p.value === ticket.priority);
+  const newPriority = await vscode.window.showQuickPick(priorities, {
+    placeHolder: 'Select priority',
+  });
+
+  vscode.window.showInformationMessage(
+    `Ticket editing is currently limited. Please use the web UI for full editing: ${baseUrl}`,
+    'Open in Browser'
+  ).then((action) => {
+    if (action === 'Open in Browser') {
+      vscode.env.openExternal(vscode.Uri.parse(item.url));
+    }
+  });
+}
+
+/**
+ * Delete ticket
+ */
+async function deleteTicket(context: vscode.ExtensionContext, item: any) {
+  const token = await context.secrets.get(TOKEN_KEY);
+  const baseUrl = context.globalState.get<string>(BASE_URL_KEY, 'https://www.opentasks.fr');
+
+  if (!token || !item || !item.ticket) {
+    return;
+  }
+
+  const ticket = item.ticket;
+
+  const confirm = await vscode.window.showWarningMessage(
+    `Are you sure you want to delete "${ticket.title}"?`,
+    { modal: true },
+    'Delete'
+  );
+
+  if (confirm !== 'Delete') {
+    return;
+  }
+
+  vscode.window.showInformationMessage(
+    `Ticket deletion is currently only available through the web UI`,
+    'Open in Browser'
+  ).then((action) => {
+    if (action === 'Open in Browser') {
+      vscode.env.openExternal(vscode.Uri.parse(item.url));
+    }
+  });
 }
 
