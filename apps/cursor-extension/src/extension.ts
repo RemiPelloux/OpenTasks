@@ -102,6 +102,12 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.updateFromAI', async () => {
+      await updateTicketFromAI(context);
+    })
+  );
+
   // Start auto-refresh timer
   startRefreshTimer(context);
 
@@ -432,7 +438,7 @@ ${ticket.prLink ? `## Pull Request\n${ticket.prLink}` : ''}
 
 /**
  * Copy ticket with enhanced context and AI prompt for analysis
- * NOW MUCH SIMPLER: Just opens Cursor Chat with the prompt!
+ * This creates a smart prompt for Cursor AI to analyze and enhance the ticket
  */
 async function copyEnhancedTicket(item: any) {
   if (!item || !item.ticket) {
@@ -460,7 +466,7 @@ async function copyEnhancedTicket(item: any) {
 **Language:** ${document.languageId}
 **Line:** ${selection.start.line + 1}${selectedCode ? `-${selection.end.line + 1}` : ''}
 
-${selectedCode ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedCode}\n\`\`\`` : '**Note:** No code selected'}
+${selectedCode ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedCode}\n\`\`\`` : '**Note:** No code selected - consider selecting relevant code for better analysis'}
 `;
   }
 
@@ -468,20 +474,20 @@ ${selectedCode ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedCo
   let workspaceInfo = '';
   if (workspaceFolders && workspaceFolders.length > 0) {
     workspaceInfo = `
-## 🗂️ Workspace
-**Path:** \`${workspaceFolders[0].uri.fsPath}\`
+## 🗂️ Workspace Context
+**Root Path:** \`${workspaceFolders[0].uri.fsPath}\`
 **Project:** ${workspaceFolders[0].name}
 `;
   }
 
-  // Create SIMPLE prompt - just ask AI to enhance the ticket!
-  const simplePrompt = `# 🎫 Analyze This Ticket
+  // Create the AI prompt with ticket info and context
+  const aiPrompt = `# 🎫 Ticket Analysis & Enhancement Request
 
-## Ticket Details
+## 📋 Ticket Details
+**ID:** ${ticket.id}
 **Title:** ${ticket.title}
 **Priority:** ${ticket.priority}
 **Status:** ${ticket.status}
-**ID:** ${ticket.id}
 
 **Description:**
 ${ticket.description || 'No description provided'}
@@ -494,170 +500,473 @@ ${workspaceInfo}
 
 ---
 
-## 🤖 Please Analyze and Enhance
+## 🤖 AI Task: Analyze and Enhance This Ticket
 
-Please provide a detailed analysis of this ticket including:
+Please analyze the ticket above and provide a structured response in the following JSON format:
 
-1. **Summary** - What needs to be done (2-3 sentences)
-2. **Complexity** - Is this LOW, MEDIUM, HIGH, or CRITICAL?
-3. **Time Estimate** - How long will this take?
-4. **Implementation Steps** - Numbered list of what to do
-5. **Files to Modify** - Which files need changes? (use the file path above if relevant)
-6. **Risks & Challenges** - What could go wrong?
-7. **Helpful Hints** - Any gotchas or tips?
-8. **Test Strategy** - How to test this?
+\`\`\`json
+{
+  "analysis": {
+    "summary": "Brief summary of what needs to be done (2-3 sentences)",
+    "complexity": "LOW | MEDIUM | HIGH | CRITICAL",
+    "estimatedTime": "e.g., 2 hours, 1 day, etc.",
+    "risksAndChallenges": ["List any potential risks or challenges"]
+  },
+  "implementation": {
+    "approach": "Recommended approach to solve this",
+    "steps": [
+      "Step 1: ...",
+      "Step 2: ...",
+      "Step 3: ..."
+    ],
+    "filesToModify": [
+      "${filePath ? filePath : '/path/to/file1.ts'}",
+      "/path/to/file2.ts"
+    ],
+    "dependencies": ["Any dependencies or prerequisites"]
+  },
+  "context": {
+    "relatedFiles": ["Files that might be affected"],
+    "testStrategy": "How to test this change",
+    "hints": [
+      "Helpful hint 1",
+      "Helpful hint 2"
+    ]
+  },
+  "enhancedDescription": "A detailed, improved description for the ticket that includes technical details, context, and implementation notes"
+}
+\`\`\`
 
-Please be specific and actionable!`;
+**Additional Instructions:**
+1. If code is selected above, analyze it for potential issues or improvements
+2. Consider the file path and workspace context in your recommendations
+3. Be specific about which files need to be modified
+4. Include practical hints and gotchas
+5. The enhancedDescription should be suitable for updating the ticket
+
+**After you provide the JSON response, I'll automatically update the ticket with your insights!**
+`;
 
   // Copy to clipboard
-  await vscode.env.clipboard.writeText(simplePrompt);
+  await vscode.env.clipboard.writeText(aiPrompt);
   
-  // Show simple instructions
+  // Show instruction to user
   const action = await vscode.window.showInformationMessage(
-    '✨ Prompt copied! Now:\n\n' +
-    '1. Press Cmd+L (or Ctrl+L) to open Cursor Chat\n' +
-    '2. Paste (Cmd+V) and press Enter\n' +
-    '3. Read AI\'s analysis - that\'s it!\n\n' +
-    'No JSON, no complicated steps!',
+    '✨ Enhanced prompt copied! Now paste it in Cursor Chat (Cmd+L or Ctrl+L).',
     'Open Cursor Chat',
-    'Show Full Instructions'
+    'Open JSON Paste Panel'
   );
 
   if (action === 'Open Cursor Chat') {
     // Open Cursor chat
     vscode.commands.executeCommand('workbench.action.chat.open');
-  } else if (action === 'Show Full Instructions') {
-    const panel = vscode.window.createWebviewPanel(
-      'simpleInstructions',
-      'How to Use Enhanced Analysis',
-      vscode.ViewColumn.Beside,
-      {}
-    );
-
-    panel.webview.html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 30px;
-            line-height: 1.8;
-            color: var(--vscode-foreground);
-            background: var(--vscode-editor-background);
-            max-width: 800px;
-            margin: 0 auto;
-          }
-          h1 { color: var(--vscode-textLink-foreground); font-size: 28px; }
-          h2 { color: var(--vscode-textLink-activeForeground); margin-top: 24px; font-size: 20px; }
-          .step {
-            background: var(--vscode-textCodeBlock-background);
-            padding: 20px;
-            margin: 16px 0;
-            border-radius: 8px;
-            border-left: 4px solid var(--vscode-textLink-foreground);
-          }
-          .step-number {
-            display: inline-block;
-            width: 32px;
-            height: 32px;
-            background: var(--vscode-textLink-foreground);
-            color: var(--vscode-textCodeBlock-background);
-            border-radius: 50%;
-            text-align: center;
-            line-height: 32px;
-            font-weight: bold;
-            margin-right: 12px;
-          }
-          code {
-            background: var(--vscode-textCodeBlock-background);
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-          }
-          .emoji { font-size: 1.4em; }
-        </style>
-      </head>
-      <body>
-        <h1>✨ Super Simple AI Analysis</h1>
-        
-        <p style="font-size: 18px; color: var(--vscode-textLink-foreground);">
-          No complicated JSON! Just 3 easy steps:
-        </p>
-
-        <div class="step">
-          <span class="step-number">1</span>
-          <strong>Open Cursor Chat</strong><br>
-          Press <code>Cmd+L</code> (Mac) or <code>Ctrl+L</code> (Windows/Linux)
-        </div>
-
-        <div class="step">
-          <span class="step-number">2</span>
-          <strong>Paste & Send</strong><br>
-          Press <code>Cmd+V</code> (or <code>Ctrl+V</code>) to paste the prompt, then press <code>Enter</code>
-        </div>
-
-        <div class="step">
-          <span class="step-number">3</span>
-          <strong>Read AI's Analysis</strong><br>
-          That's it! AI will give you a detailed breakdown in plain English.
-        </div>
-
-        <h2>💡 What AI Will Tell You:</h2>
-        <ul>
-          <li>📝 <strong>Summary</strong> - What needs to be done</li>
-          <li>⚡ <strong>Complexity</strong> - How hard is this?</li>
-          <li>⏱️ <strong>Time Estimate</strong> - How long will it take?</li>
-          <li>🔨 <strong>Implementation Steps</strong> - What to do, in order</li>
-          <li>📁 <strong>Files to Modify</strong> - Which files to change</li>
-          <li>⚠️ <strong>Risks</strong> - What could go wrong</li>
-          <li>💡 <strong>Hints</strong> - Helpful tips and gotchas</li>
-          <li>🧪 <strong>Test Strategy</strong> - How to test it</li>
-        </ul>
-
-        <h2>🎯 Pro Tip:</h2>
-        <p>
-          Before right-clicking the ticket, <strong>select relevant code</strong> in your file.
-          AI will see the code and give more specific advice!
-        </p>
-
-        <hr style="margin: 30px 0; border: 1px solid var(--vscode-widget-border);">
-        
-        <p style="text-align: center; color: var(--vscode-descriptionForeground);">
-          <strong>No JSON copying!</strong> Just chat with AI like normal! 🎉
-        </p>
-      </body>
-      </html>
-    `;
+  } else if (action === 'Open JSON Paste Panel') {
+    // Open the JSON paste panel immediately
+    await showJsonPastePanel(context, item);
   }
 }
 
 /**
- * Show instructions for updating ticket with AI response
+ * Show JSON paste panel for easy ticket updating
  */
-async function showTicketUpdateInstructions(item: any) {
-  const instructions = `# 📝 Update Ticket with AI Response
-
-## Steps:
-
-1. **Paste the prompt in Cursor Chat** (Cmd+L or Ctrl+L)
-2. **Wait for AI to respond** with JSON
-3. **Copy the JSON response** from AI
-4. **Run Command:** \`OpenTasks: Update Ticket from AI Response\`
-5. **Paste the JSON** when prompted
-6. ✅ **Ticket will be automatically updated!**
-
-The ticket will be enhanced with:
-- Improved description
-- Implementation steps
-- File paths and hints
-- Complexity estimate
-- Test strategy
-`;
-
+async function showJsonPastePanel(context: vscode.ExtensionContext, ticketItem: any) {
   const panel = vscode.window.createWebviewPanel(
-    'opentasksInstructions',
-    'Update Ticket Instructions',
+    'opentasksJsonPaste',
+    '📋 Paste AI Response',
+    vscode.ViewColumn.Beside,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true
+    }
+  );
+
+  panel.webview.html = getJsonPasteHtml();
+
+  // Handle messages from the webview
+  panel.webview.onDidReceiveMessage(
+    async (message) => {
+      switch (message.command) {
+        case 'updateTicket':
+          await processAIResponse(context, message.json, ticketItem);
+          panel.dispose();
+          break;
+        case 'cancel':
+          panel.dispose();
+          break;
+      }
+    },
+    undefined,
+    context.subscriptions
+  );
+}
+
+/**
+ * Get HTML for JSON paste panel
+ */
+function getJsonPasteHtml(): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          padding: 24px;
+          background: var(--vscode-editor-background);
+          color: var(--vscode-editor-foreground);
+          line-height: 1.6;
+        }
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        h1 {
+          color: var(--vscode-textLink-foreground);
+          margin-bottom: 8px;
+          font-size: 24px;
+        }
+        .subtitle {
+          color: var(--vscode-descriptionForeground);
+          margin-bottom: 24px;
+          font-size: 14px;
+        }
+        .steps {
+          background: var(--vscode-textBlockQuote-background);
+          border-left: 4px solid var(--vscode-textLink-foreground);
+          padding: 16px;
+          margin-bottom: 24px;
+          border-radius: 4px;
+        }
+        .steps h3 {
+          color: var(--vscode-textLink-foreground);
+          margin-bottom: 12px;
+          font-size: 16px;
+        }
+        .steps ol {
+          margin-left: 20px;
+        }
+        .steps li {
+          margin: 8px 0;
+          color: var(--vscode-foreground);
+        }
+        .steps code {
+          background: var(--vscode-textCodeBlock-background);
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-family: 'Courier New', monospace;
+          color: var(--vscode-textPreformat-foreground);
+        }
+        label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: 600;
+          color: var(--vscode-foreground);
+        }
+        textarea {
+          width: 100%;
+          min-height: 300px;
+          padding: 12px;
+          border: 1px solid var(--vscode-input-border);
+          background: var(--vscode-input-background);
+          color: var(--vscode-input-foreground);
+          border-radius: 4px;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+          resize: vertical;
+          margin-bottom: 16px;
+        }
+        textarea:focus {
+          outline: 1px solid var(--vscode-focusBorder);
+        }
+        textarea::placeholder {
+          color: var(--vscode-input-placeholderForeground);
+        }
+        .button-group {
+          display: flex;
+          gap: 12px;
+          margin-top: 16px;
+        }
+        button {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-primary {
+          background: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          flex: 1;
+        }
+        .btn-primary:hover {
+          background: var(--vscode-button-hoverBackground);
+        }
+        .btn-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .btn-secondary {
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+        }
+        .btn-secondary:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+        }
+        .error {
+          color: var(--vscode-errorForeground);
+          background: var(--vscode-inputValidation-errorBackground);
+          border: 1px solid var(--vscode-inputValidation-errorBorder);
+          padding: 12px;
+          border-radius: 4px;
+          margin-bottom: 16px;
+          display: none;
+        }
+        .success {
+          color: #4ade80;
+          margin-top: 8px;
+          display: none;
+        }
+        .emoji {
+          font-size: 1.2em;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1><span class="emoji">🤖</span> Paste AI Response Here</h1>
+        <p class="subtitle">Copy the JSON response from Cursor Chat and paste it below</p>
+
+        <div class="steps">
+          <h3>📝 How to get the JSON:</h3>
+          <ol>
+            <li>Open Cursor Chat (<code>Cmd+L</code> or <code>Ctrl+L</code>)</li>
+            <li>Paste the prompt that was copied</li>
+            <li>Wait for AI to respond with JSON</li>
+            <li>Copy <strong>only the JSON</strong> (everything between <code>\`\`\`json</code> and <code>\`\`\`</code>)</li>
+            <li>Paste it in the box below</li>
+          </ol>
+        </div>
+
+        <div id="error" class="error"></div>
+
+        <label for="jsonInput">
+          AI JSON Response:
+          <span class="success" id="validJson">✓ Valid JSON</span>
+        </label>
+        <textarea 
+          id="jsonInput" 
+          placeholder='{
+  "analysis": {
+    "summary": "...",
+    "complexity": "MEDIUM",
+    "estimatedTime": "2 hours",
+    "risksAndChallenges": [...]
+  },
+  "implementation": {
+    "approach": "...",
+    "steps": [...],
+    "filesToModify": [...],
+    "dependencies": [...]
+  },
+  "context": {
+    "hints": [...],
+    "testStrategy": "...",
+    "relatedFiles": [...]
+  },
+  "enhancedDescription": "..."
+}'
+        ></textarea>
+
+        <div class="button-group">
+          <button class="btn-secondary" onclick="cancel()">Cancel</button>
+          <button class="btn-primary" id="updateBtn" onclick="updateTicket()" disabled>
+            <span class="emoji">✨</span> Update Ticket
+          </button>
+        </div>
+      </div>
+
+      <script>
+        const vscode = acquireVsCodeApi();
+        const textarea = document.getElementById('jsonInput');
+        const updateBtn = document.getElementById('updateBtn');
+        const errorDiv = document.getElementById('error');
+        const successSpan = document.getElementById('validJson');
+
+        // Auto-check clipboard on load
+        navigator.clipboard.readText().then(text => {
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed.analysis && parsed.implementation && parsed.enhancedDescription) {
+              textarea.value = text;
+              validateJSON();
+            }
+          } catch (e) {
+            // Not JSON, that's fine
+          }
+        }).catch(() => {
+          // Clipboard access denied, that's fine
+        });
+
+        // Validate JSON as user types
+        textarea.addEventListener('input', validateJSON);
+
+        function validateJSON() {
+          const value = textarea.value.trim();
+          errorDiv.style.display = 'none';
+          successSpan.style.display = 'none';
+          updateBtn.disabled = true;
+
+          if (!value) {
+            return;
+          }
+
+          try {
+            const json = JSON.parse(value);
+            
+            // Validate structure
+            if (!json.analysis || !json.implementation || !json.enhancedDescription) {
+              throw new Error('Missing required fields: analysis, implementation, or enhancedDescription');
+            }
+
+            // Valid!
+            successSpan.style.display = 'inline';
+            updateBtn.disabled = false;
+          } catch (e) {
+            errorDiv.textContent = '❌ ' + e.message;
+            errorDiv.style.display = 'block';
+          }
+        }
+
+        function updateTicket() {
+          const value = textarea.value.trim();
+          try {
+            const json = JSON.parse(value);
+            vscode.postMessage({
+              command: 'updateTicket',
+              json: json
+            });
+          } catch (e) {
+            errorDiv.textContent = '❌ Invalid JSON: ' + e.message;
+            errorDiv.style.display = 'block';
+          }
+        }
+
+        function cancel() {
+          vscode.postMessage({ command: 'cancel' });
+        }
+
+        // Keyboard shortcut: Cmd+Enter or Ctrl+Enter to update
+        textarea.addEventListener('keydown', (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            if (!updateBtn.disabled) {
+              updateTicket();
+            }
+          }
+        });
+      </script>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Process AI response and update ticket
+ */
+async function processAIResponse(context: vscode.ExtensionContext, aiResponse: any, ticketItem: any) {
+  const token = await context.secrets.get(TOKEN_KEY);
+  const baseUrl = context.globalState.get<string>(BASE_URL_KEY, 'https://www.opentasks.fr');
+
+  if (!token || !ticketItem || !ticketItem.ticket) {
+    vscode.window.showErrorMessage('Missing authentication or ticket information');
+    return;
+  }
+
+  try {
+    const ticket = ticketItem.ticket;
+    const projectId = ticketItem.projectId;
+
+    // Build enhanced description
+    const enhancedDescription = `${aiResponse.enhancedDescription}
+
+---
+
+## 🤖 AI Analysis
+
+**Summary:** ${aiResponse.analysis.summary}
+
+**Complexity:** ${aiResponse.analysis.complexity}
+**Estimated Time:** ${aiResponse.analysis.estimatedTime}
+
+**Risks & Challenges:**
+${aiResponse.analysis.risksAndChallenges.map((r: string) => `- ${r}`).join('\n')}
+
+## 🎯 Implementation Approach
+
+${aiResponse.implementation.approach}
+
+**Implementation Steps:**
+${aiResponse.implementation.steps.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}
+
+**Files to Modify:**
+${aiResponse.implementation.filesToModify.map((f: string) => `- \`${f}\``).join('\n')}
+
+${aiResponse.implementation.dependencies && aiResponse.implementation.dependencies.length > 0 ? `**Dependencies:**\n${aiResponse.implementation.dependencies.map((d: string) => `- ${d}`).join('\n')}\n` : ''}
+
+## 💡 Context & Hints
+
+${aiResponse.context.hints.map((h: string) => `- ${h}`).join('\n')}
+
+**Test Strategy:**
+${aiResponse.context.testStrategy}
+
+${aiResponse.context.relatedFiles && aiResponse.context.relatedFiles.length > 0 ? `\n**Related Files:**\n${aiResponse.context.relatedFiles.map((f: string) => `- \`${f}\``).join('\n')}` : ''}
+
+---
+*✨ Enhanced by Cursor AI via OpenTasks Extension*`;
+
+    // Copy to clipboard
+    await vscode.env.clipboard.writeText(enhancedDescription);
+
+    // Show success
+    const action = await vscode.window.showInformationMessage(
+      `✅ Enhanced description created for "${ticket.title}"!\n\n` +
+      `Complexity: ${aiResponse.analysis.complexity} | Time: ${aiResponse.analysis.estimatedTime}\n\n` +
+      `The enhanced description has been copied to your clipboard.`,
+      'Open in Browser',
+      'Show Preview'
+    );
+
+    if (action === 'Open in Browser') {
+      const url = `${baseUrl}/project/${projectId}/board`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    } else if (action === 'Show Preview') {
+      showPreviewPanel(ticket, aiResponse, enhancedDescription);
+    }
+
+    // Refresh tree
+    await treeProvider?.refresh();
+
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to process: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Show preview panel
+ */
+function showPreviewPanel(ticket: any, aiResponse: any, enhancedDescription: string) {
+  const panel = vscode.window.createWebviewPanel(
+    'ticketPreview',
+    `Preview: ${ticket.title}`,
     vscode.ViewColumn.Beside,
     {}
   );
@@ -668,50 +977,62 @@ The ticket will be enhanced with:
     <head>
       <style>
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          padding: 20px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          padding: 32px;
           line-height: 1.6;
-          color: var(--vscode-foreground);
-          background: var(--vscode-editor-background);
+          color: #e5e7eb;
+          background: #1e1e1e;
+          max-width: 900px;
+          margin: 0 auto;
         }
-        h1 { color: var(--vscode-textLink-foreground); }
-        h2 { color: var(--vscode-textLink-activeForeground); margin-top: 24px; }
+        h1 { 
+          color: #a78bfa; 
+          border-bottom: 2px solid #a78bfa; 
+          padding-bottom: 12px;
+          margin-bottom: 20px;
+        }
+        h2 { color: #60a5fa; margin-top: 24px; }
         code {
-          background: var(--vscode-textCodeBlock-background);
+          background: #374151;
           padding: 2px 6px;
           border-radius: 3px;
           font-family: 'Courier New', monospace;
+          color: #fbbf24;
         }
-        ol { margin-left: 20px; }
-        li { margin: 8px 0; }
-        .emoji { font-size: 1.2em; }
+        .badges {
+          margin: 20px 0;
+        }
+        .badge {
+          display: inline-block;
+          padding: 6px 14px;
+          border-radius: 14px;
+          font-size: 13px;
+          font-weight: 600;
+          margin: 4px;
+        }
+        .complexity-CRITICAL { background: #dc2626; color: white; }
+        .complexity-HIGH { background: #f87171; color: white; }
+        .complexity-MEDIUM { background: #fbbf24; color: #000; }
+        .complexity-LOW { background: #34d399; color: #000; }
+        ul, ol { margin-left: 24px; }
+        li { margin: 10px 0; }
+        hr { border: 1px solid #374151; margin: 28px 0; }
+        pre {
+          background: #374151;
+          padding: 16px;
+          border-radius: 6px;
+          overflow-x: auto;
+        }
       </style>
     </head>
     <body>
-      <h1>📝 Update Ticket with AI Response</h1>
-      
-      <h2>Steps:</h2>
-      <ol>
-        <li>📋 <strong>Paste the prompt in Cursor Chat</strong> (Cmd+L or Ctrl+L)</li>
-        <li>⏳ <strong>Wait for AI to respond</strong> with JSON structure</li>
-        <li>📄 <strong>Copy the JSON response</strong> from AI (everything between the \`\`\`json tags)</li>
-        <li>⚡ <strong>Run Command:</strong> <code>OpenTasks: Update Ticket from AI Response</code></li>
-        <li>📥 <strong>Paste the JSON</strong> when prompted</li>
-        <li>✅ <strong>Ticket will be automatically updated!</strong></li>
-      </ol>
-
-      <h2>🎯 What Gets Updated:</h2>
-      <ul>
-        <li>Enhanced description with technical details</li>
-        <li>Implementation steps and approach</li>
-        <li>File paths to modify</li>
-        <li>Complexity and time estimates</li>
-        <li>Helpful hints and gotchas</li>
-        <li>Test strategy</li>
-      </ul>
-
-      <h2>💡 Pro Tip:</h2>
-      <p>Select relevant code in your file before using "Copy & Enhance" for more accurate AI analysis!</p>
+      <h1>📋 ${ticket.title}</h1>
+      <div class="badges">
+        <span class="badge complexity-${aiResponse.analysis.complexity}">${aiResponse.analysis.complexity}</span>
+        <span class="badge" style="background: #6366f1; color: white;">⏱️ ${aiResponse.analysis.estimatedTime}</span>
+        <span class="badge" style="background: #8b5cf6; color: white;">${ticket.priority}</span>
+      </div>
+      <pre style="white-space: pre-wrap; word-wrap: break-word;">${enhancedDescription.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
     </body>
     </html>
   `;

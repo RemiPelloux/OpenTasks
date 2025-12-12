@@ -126,7 +126,7 @@ class WebSocketService {
             this.ticketMoved(projectId, ticket.id, fromStatus, toStatus, ticket.position);
           } else {
             // Fallback to ticketUpdated
-            this.ticketUpdated(projectId, ticket);
+          this.ticketUpdated(projectId, ticket);
           }
           break;
       }
