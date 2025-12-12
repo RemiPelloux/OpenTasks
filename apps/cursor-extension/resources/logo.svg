@@ -36,3 +36,4 @@
     <animate attributeName="opacity" values="1;0;1" dur="1.5s" repeatCount="indefinite"/>
   </circle>
 </svg>
+

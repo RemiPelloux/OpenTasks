@@ -82,3 +82,4 @@ This creates a `.vsix` file that can be installed manually in VS Code/Cursor.
 ## License
 
 Same as OpenTasks project.
+

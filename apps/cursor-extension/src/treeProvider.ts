@@ -264,3 +264,4 @@ export class ProjectsTreeProvider implements vscode.TreeDataProvider<TreeItem> {
     }));
   }
 }
+

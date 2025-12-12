@@ -535,3 +535,4 @@ extRoutes.patch('/projects/:projectId/tickets/:ticketId/status', requireApiToken
     res.status(500).json({ error: 'Failed to update ticket status' });
   }
 });
+

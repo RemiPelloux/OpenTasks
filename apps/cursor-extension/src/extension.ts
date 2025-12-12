@@ -271,3 +271,4 @@ async function createTicket(context: vscode.ExtensionContext) {
     vscode.window.showErrorMessage(`Failed to create ticket: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
+

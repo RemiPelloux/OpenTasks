@@ -4,7 +4,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { prisma } from '@opentasks/database';
 
 /**
@@ -37,9 +37,8 @@ export function hashToken(token: string): string {
  * Generate a cryptographically secure random token
  */
 export function generateToken(): string {
-  const crypto = require('crypto');
   // Generate 32 bytes (256 bits) and encode as base64url
-  return crypto.randomBytes(32).toString('base64url');
+  return randomBytes(32).toString('base64url');
 }
 
 /**
@@ -175,3 +174,4 @@ export async function optionalApiToken(
     next();
   }
 }
+
