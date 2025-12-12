@@ -30,6 +30,11 @@ model User {
   // Saved Cursor API key for convenience
   cursorApiKeyEncrypted String? @map("cursor_api_key_encrypted") @db.Text
 
+  // Onboarding tracking
+  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
+  onboardingStep      Int      @default(0) @map("onboarding_step") // Current step (0-5)
+  onboardingSkipped   Boolean  @default(false) @map("onboarding_skipped")
+
   // Relations
   inviteCodeUsed   InviteCode? @relation("UsedBy", fields: [inviteCodeId], references: [id])
   inviteCodeId     String?     @unique @map("invite_code_id")

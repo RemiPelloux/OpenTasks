@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to OpenTasks - Get Started</title>
+  <link rel="stylesheet" href="/styles/output.css">
+  <style>
+    .onboarding-container {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .onboarding-card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 16px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    .step-indicator::before {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #27272a;
+      z-index: 0;
+    }
+
+    .step {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #27272a;
+      border: 2px solid #3f3f46;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #71717a;
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s;
+    }
+
+    .step.active {
+      background: #7c3aed;
+      border-color: #7c3aed;
+      color: white;
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+    }
+
+    .step.completed {
+      background: #22c55e;
+      border-color: #22c55e;
+      color: white;
+    }
+
+    .step-content {
+      display: none;
+    }
+
+    .step-content.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+
+    .feature-card {
+      background: #27272a;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #3f3f46;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: #7c3aed;
+      transform: translateY(-2px);
+    }
+
+    .code-block {
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #a1a1aa;
+      margin: 1rem 0;
+      position: relative;
+    }
+
+    .copy-button {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: #27272a;
+      border: 1px solid #3f3f46;
+      color: #a1a1aa;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-button:hover {
+      background: #3f3f46;
+      color: white;
+    }
+
+    .api-key-input {
+      width: 100%;
+      background: #09090b;
+      border: 2px solid #27272a;
+      border-radius: 8px;
+      padding: 1rem;
+      color: white;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .api-key-input:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(124, 58, 237, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #a1a1aa;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      border: 1px solid #3f3f46;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-secondary:hover {
+      border-color: #7c3aed;
+      color: white;
+    }
+
+    .video-placeholder {
+      background: #09090b;
+      border: 2px dashed #27272a;
+      border-radius: 8px;
+      padding: 3rem;
+      text-align: center;
+      color: #71717a;
+      margin: 2rem 0;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      background: #27272a;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      border: 1px solid #3f3f46;
+    }
+
+    .checklist-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 1rem;
+      accent-color: #7c3aed;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-white">
+  <div class="onboarding-container">
+    <div class="onboarding-card p-8">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="inline-block p-3 bg-purple-600/20 rounded-lg mb-4">
+          <svg class="w-12 h-12 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+          </svg>
+        </div>
+        <h1 class="text-3xl font-bold mb-2">Welcome to OpenTasks! 🎉</h1>
+        <p class="text-zinc-400">Let's get you set up in just a few minutes</p>
+      </div>
+
+      <!-- Step Indicator -->
+      <div class="step-indicator mb-8">
+        <div class="step active" data-step="1">1</div>
+        <div class="step" data-step="2">2</div>
+        <div class="step" data-step="3">3</div>
+        <div class="step" data-step="4">4</div>
+        <div class="step" data-step="5">5</div>
+      </div>
+
+      <form id="onboardingForm" action="/onboarding/complete" method="POST">
+        
+        <!-- Step 1: Introduction -->
+        <div class="step-content active" data-step="1">
+          <h2 class="text-2xl font-bold mb-4">What is OpenTasks?</h2>
+          <p class="text-zinc-300 mb-6">
+            OpenTasks is an AI-powered Kanban board that turns your tickets into pull requests automatically.
+          </p>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="text-3xl mb-3">🎯</div>
+              <h3 class="font-semibold mb-2">Smart Kanban</h3>
+              <p class="text-sm text-zinc-400">Drag tasks to "AI Agent" column</p>
+            </div>
+            <div class="feature-card">
+              <div class="text-3xl mb-3">🤖</div>
+              <h3 class="font-semibold mb-2">AI Agent</h3>
+              <p class="text-sm text-zinc-400">Cursor AI writes the code</p>
+            </div>
+            <div class="feature-card">
+              <div class="text-3xl mb-3">📝</div>
+              <h3 class="font-semibold mb-2">Auto PRs</h3>
+              <p class="text-sm text-zinc-400">Creates branches & pull requests</p>
+            </div>
+            <div class="feature-card">
+              <div class="text-3xl mb-3">⚡</div>
+              <h3 class="font-semibold mb-2">Real-time</h3>
+              <p class="text-sm text-zinc-400">Live updates via WebSocket</p>
+            </div>
+          </div>
+
+          <div class="video-placeholder">
+            <div class="text-4xl mb-3">🎬</div>
+            <p>Watch: How OpenTasks Works (2 min)</p>
+            <small class="text-zinc-500">Coming soon...</small>
+          </div>
+        </div>
+
+        <!-- Step 2: Cursor API Key -->
+        <div class="step-content" data-step="2">
+          <h2 class="text-2xl font-bold mb-4">🔑 Setup Your Cursor API Key</h2>
+          <p class="text-zinc-300 mb-6">
+            OpenTasks uses <strong>your own Cursor API key</strong> (BYOK - Bring Your Own Key). 
+            This means you keep full control and we don't mark up AI costs.
+          </p>
+
+          <div class="bg-purple-900/20 border border-purple-700/30 rounded-lg p-4 mb-6">
+            <h3 class="font-semibold mb-2 flex items-center">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              How to get your Cursor API Key:
+            </h3>
+            <ol class="list-decimal list-inside space-y-2 text-sm text-zinc-300">
+              <li>Go to <a href="https://www.cursor.com/settings" target="_blank" class="text-purple-400 hover:underline">cursor.com/settings</a></li>
+              <li>Navigate to the <strong>"API Keys"</strong> section</li>
+              <li>Click <strong>"Generate New Key"</strong></li>
+              <li>Copy the key and paste it below</li>
+            </ol>
+          </div>
+
+          <label class="block mb-2 font-semibold">Cursor API Key</label>
+          <input 
+            type="password" 
+            name="cursorApiKey" 
+            id="cursorApiKey"
+            class="api-key-input mb-4" 
+            placeholder="sk-proj-..."
+            required
+          >
+          
+          <div class="flex items-start space-x-2 text-sm text-zinc-400 mb-4">
+            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+            </svg>
+            <span>Your API key is encrypted with AES-256 and stored securely. Only you can use it.</span>
+          </div>
+
+          <label class="flex items-center cursor-pointer">
+            <input type="checkbox" name="saveKeyGlobally" id="saveKeyGlobally" class="mr-2">
+            <span class="text-sm text-zinc-300">Save this key for all my projects (optional)</span>
+          </label>
+        </div>
+
+        <!-- Step 3: First Project -->
+        <div class="step-content" data-step="3">
+          <h2 class="text-2xl font-bold mb-4">🚀 Create Your First Project</h2>
+          <p class="text-zinc-300 mb-6">
+            Projects organize your tickets and connect to your GitHub repository.
+          </p>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block mb-2 font-semibold">Project Name</label>
+              <input 
+                type="text" 
+                name="projectName" 
+                id="projectName"
+                class="api-key-input" 
+                placeholder="My Awesome Project"
+                required
+              >
+            </div>
+
+            <div>
+              <label class="block mb-2 font-semibold">Description (optional)</label>
+              <textarea 
+                name="projectDescription" 
+                id="projectDescription"
+                class="api-key-input" 
+                rows="3"
+                placeholder="What is this project about?"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block mb-2 font-semibold">GitHub Repository (optional)</label>
+              <input 
+                type="url" 
+                name="githubRepoUrl" 
+                id="githubRepoUrl"
+                class="api-key-input" 
+                placeholder="https://github.com/username/repo"
+              >
+              <small class="text-zinc-500 text-sm">Used for creating branches and PRs</small>
+            </div>
+
+            <div>
+              <label class="block mb-2 font-semibold">Default Branch</label>
+              <input 
+                type="text" 
+                name="defaultBranch" 
+                id="defaultBranch"
+                class="api-key-input" 
+                value="main"
+              >
+            </div>
+          </div>
+
+          <div class="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4 mt-6">
+            <p class="text-sm text-blue-200">
+              💡 <strong>Pro Tip:</strong> You can add more projects anytime from the dashboard!
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 4: Integrations (Optional) -->
+        <div class="step-content" data-step="4">
+          <h2 class="text-2xl font-bold mb-4">🔔 Setup Notifications (Optional)</h2>
+          <p class="text-zinc-300 mb-6">
+            Get notified when the AI agent completes your tasks.
+          </p>
+
+          <div class="space-y-6">
+            <!-- Slack -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+              <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center mr-3">
+                  <svg class="w-6 h-6 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-semibold">Slack</h3>
+                  <p class="text-sm text-zinc-400">Get updates in your Slack channel</p>
+                </div>
+              </div>
+              <input 
+                type="url" 
+                name="slackWebhook" 
+                id="slackWebhook"
+                class="api-key-input" 
+                placeholder="https://hooks.slack.com/services/..."
+              >
+              <small class="text-zinc-500 text-sm block mt-2">
+                <a href="https://api.slack.com/messaging/webhooks" target="_blank" class="text-purple-400 hover:underline">
+                  Learn how to create a Slack webhook →
+                </a>
+              </small>
+            </div>
+
+            <!-- Discord -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+              <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-indigo-600/20 rounded-lg flex items-center justify-center mr-3">
+                  <svg class="w-6 h-6 text-indigo-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-semibold">Discord</h3>
+                  <p class="text-sm text-zinc-400">Get updates in your Discord server</p>
+                </div>
+              </div>
+              <input 
+                type="url" 
+                name="discordWebhook" 
+                id="discordWebhook"
+                class="api-key-input" 
+                placeholder="https://discord.com/api/webhooks/..."
+              >
+              <small class="text-zinc-500 text-sm block mt-2">
+                <a href="https://support.discord.com/hc/en-us/articles/228383668" target="_blank" class="text-purple-400 hover:underline">
+                  Learn how to create a Discord webhook →
+                </a>
+              </small>
+            </div>
+          </div>
+
+          <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mt-6">
+            <p class="text-sm text-zinc-400">
+              ℹ️ You can skip this step and configure notifications later in project settings.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 5: Ready to Go! -->
+        <div class="step-content" data-step="5">
+          <h2 class="text-2xl font-bold mb-4 text-center">🎉 You're All Set!</h2>
+          <p class="text-zinc-300 mb-8 text-center">
+            Here's a quick checklist to get you started:
+          </p>
+
+          <div class="space-y-3 mb-8">
+            <div class="checklist-item">
+              <input type="checkbox" checked disabled>
+              <span>✅ Created your OpenTasks account</span>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" checked disabled>
+              <span>✅ Connected Cursor API key</span>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" checked disabled>
+              <span>✅ Set up your first project</span>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox">
+              <span>Create your first ticket</span>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox">
+              <span>Drag it to "AI Agent" column</span>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox">
+              <span>Watch the magic happen! 🪄</span>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-700/30 rounded-lg p-6 mb-8">
+            <h3 class="font-semibold mb-3 flex items-center">
+              <svg class="w-5 h-5 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+              Pro Tips:
+            </h3>
+            <ul class="space-y-2 text-sm text-zinc-300">
+              <li>• Write clear, detailed ticket descriptions for better AI results</li>
+              <li>• Use the Cursor Extension to create tickets directly from your IDE</li>
+              <li>• The AI agent reads your entire repo context before coding</li>
+              <li>• Review PRs before merging - the AI is smart but not perfect!</li>
+            </ul>
+          </div>
+
+          <div class="text-center">
+            <p class="text-zinc-400 mb-4">Ready to ship faster?</p>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex justify-between mt-8 pt-6 border-t border-zinc-800">
+          <button 
+            type="button" 
+            id="prevBtn" 
+            class="btn-secondary"
+            style="visibility: hidden;"
+          >
+            ← Previous
+          </button>
+          
+          <button 
+            type="button" 
+            id="skipBtn" 
+            class="btn-secondary"
+          >
+            Skip Setup
+          </button>
+          
+          <button 
+            type="button" 
+            id="nextBtn" 
+            class="btn-primary"
+          >
+            Next →
+          </button>
+          
+          <button 
+            type="submit" 
+            id="completeBtn" 
+            class="btn-primary"
+            style="display: none;"
+          >
+            Go to Dashboard 🚀
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 1;
+    const totalSteps = 5;
+
+    function updateStepIndicator() {
+      document.querySelectorAll('.step').forEach((step, index) => {
+        const stepNum = index + 1;
+        if (stepNum < currentStep) {
+          step.classList.add('completed');
+          step.classList.remove('active');
+          step.textContent = '✓';
+        } else if (stepNum === currentStep) {
+          step.classList.add('active');
+          step.classList.remove('completed');
+          step.textContent = stepNum;
+        } else {
+          step.classList.remove('active', 'completed');
+          step.textContent = stepNum;
+        }
+      });
+
+      // Update content visibility
+      document.querySelectorAll('.step-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.querySelector(`[data-step="${currentStep}"]`).classList.add('active');
+
+      // Update button visibility
+      document.getElementById('prevBtn').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+      document.getElementById('nextBtn').style.display = currentStep === totalSteps ? 'none' : 'block';
+      document.getElementById('completeBtn').style.display = currentStep === totalSteps ? 'block' : 'none';
+      document.getElementById('skipBtn').style.display = currentStep === totalSteps ? 'none' : 'block';
+    }
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      // Validate current step
+      if (currentStep === 2) {
+        const apiKey = document.getElementById('cursorApiKey').value;
+        if (!apiKey) {
+          alert('Please enter your Cursor API key');
+          return;
+        }
+      } else if (currentStep === 3) {
+        const projectName = document.getElementById('projectName').value;
+        if (!projectName) {
+          alert('Please enter a project name');
+          return;
+        }
+      }
+
+      if (currentStep < totalSteps) {
+        currentStep++;
+        updateStepIndicator();
+      }
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (currentStep > 1) {
+        currentStep--;
+        updateStepIndicator();
+      }
+    });
+
+    document.getElementById('skipBtn').addEventListener('click', () => {
+      if (confirm('Are you sure you want to skip the setup? You can configure everything later in settings.')) {
+        window.location.href = '/dashboard';
+      }
+    });
+
+    // Initialize
+    updateStepIndicator();
+  </script>
+</body>
+</html>

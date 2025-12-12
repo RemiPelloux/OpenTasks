@@ -20,6 +20,17 @@ dashboardRoutes.get('/', async (req, res) => {
   try {
     const userId = req.session.user!.id;
 
+    // Check if user needs onboarding
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { onboardingCompleted: true, onboardingSkipped: true },
+    });
+
+    if (!user?.onboardingCompleted && !user?.onboardingSkipped) {
+      res.redirect('/onboarding');
+      return;
+    }
+
     // Get user's projects with stats
     const memberships = await prisma.projectMember.findMany({
       where: { userId },

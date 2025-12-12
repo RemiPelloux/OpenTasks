@@ -15,6 +15,7 @@ import { extRoutes } from './ext.js';
 import { settingsRoutes } from './settings.js';
 import { docsRoutes } from './docs.js';
 import { healthRoutes } from './health.js';
+import { onboardingRoutes } from './onboarding.js';
 import { globalLimiter, dynamicRateLimiter } from '../middleware/rateLimit.js';
 
 export function configureRoutes(app: Express): void {
@@ -40,6 +41,9 @@ export function configureRoutes(app: Express): void {
 
   // Auth routes
   app.use('/', authRoutes);
+
+  // Onboarding routes (protected)
+  app.use('/onboarding', onboardingRoutes);
 
   // Dashboard routes (protected)
   app.use('/dashboard', dashboardRoutes);

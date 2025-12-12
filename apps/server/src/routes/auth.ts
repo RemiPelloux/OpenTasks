@@ -217,7 +217,7 @@ authRoutes.post('/register', guestOnly, async (req, res) => {
     };
 
     req.session.user = sessionUser;
-    res.redirect('/dashboard');
+    res.redirect('/onboarding');
   } catch (error) {
     console.error('Registration error:', error);
     res.render('auth/register', {
