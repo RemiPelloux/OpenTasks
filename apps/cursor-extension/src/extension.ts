@@ -102,6 +102,12 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('opentasks.updateFromAI', async () => {
+      await updateTicketFromAI(context);
+    })
+  );
+
   // Start auto-refresh timer
   startRefreshTimer(context);
 
@@ -431,7 +437,8 @@ ${ticket.prLink ? `## Pull Request\n${ticket.prLink}` : ''}
 }
 
 /**
- * Copy ticket with enhanced context (file paths, workspace info)
+ * Copy ticket with enhanced context and AI prompt for analysis
+ * This creates a smart prompt for Cursor AI to analyze and enhance the ticket
  */
 async function copyEnhancedTicket(item: any) {
   if (!item || !item.ticket) {
@@ -444,16 +451,22 @@ async function copyEnhancedTicket(item: any) {
 
   // Get current file context
   let fileContext = '';
+  let filePath = '';
+  let selectedCode = '';
+  
   if (activeEditor) {
     const document = activeEditor.document;
     const selection = activeEditor.selection;
-    const selectedText = document.getText(selection);
+    selectedCode = document.getText(selection);
+    filePath = document.fileName;
 
     fileContext = `
-## Current File Context
-**File:** ${document.fileName}
+## 📁 Current File Context
+**File Path:** \`${document.fileName}\`
 **Language:** ${document.languageId}
-${selectedText ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedText}\n\`\`\`` : ''}
+**Line:** ${selection.start.line + 1}${selectedCode ? `-${selection.end.line + 1}` : ''}
+
+${selectedCode ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedCode}\n\`\`\`` : '**Note:** No code selected - consider selecting relevant code for better analysis'}
 `;
   }
 
@@ -461,33 +474,181 @@ ${selectedText ? `**Selected Code:**\n\`\`\`${document.languageId}\n${selectedTe
   let workspaceInfo = '';
   if (workspaceFolders && workspaceFolders.length > 0) {
     workspaceInfo = `
-## Workspace
-**Path:** ${workspaceFolders[0].uri.fsPath}
-**Name:** ${workspaceFolders[0].name}
+## 🗂️ Workspace Context
+**Root Path:** \`${workspaceFolders[0].uri.fsPath}\`
+**Project:** ${workspaceFolders[0].name}
 `;
   }
 
-  const enhancedText = `# ${ticket.title}
+  // Create the AI prompt with ticket info and context
+  const aiPrompt = `# 🎫 Ticket Analysis & Enhancement Request
 
+## 📋 Ticket Details
+**ID:** ${ticket.id}
+**Title:** ${ticket.title}
 **Priority:** ${ticket.priority}
 **Status:** ${ticket.status}
-**ID:** ${ticket.id}
 
-## Description
-${ticket.description || 'No description'}
+**Description:**
+${ticket.description || 'No description provided'}
+
+${ticket.aiSummary ? `**Previous AI Summary:**\n${ticket.aiSummary}\n` : ''}
 
 ${fileContext}
 
 ${workspaceInfo}
 
-${ticket.aiSummary ? `## AI Summary\n${ticket.aiSummary}` : ''}
-
 ---
-*Enhanced ticket details with context from Cursor IDE*
+
+## 🤖 AI Task: Analyze and Enhance This Ticket
+
+Please analyze the ticket above and provide a structured response in the following JSON format:
+
+\`\`\`json
+{
+  "analysis": {
+    "summary": "Brief summary of what needs to be done (2-3 sentences)",
+    "complexity": "LOW | MEDIUM | HIGH | CRITICAL",
+    "estimatedTime": "e.g., 2 hours, 1 day, etc.",
+    "risksAndChallenges": ["List any potential risks or challenges"]
+  },
+  "implementation": {
+    "approach": "Recommended approach to solve this",
+    "steps": [
+      "Step 1: ...",
+      "Step 2: ...",
+      "Step 3: ..."
+    ],
+    "filesToModify": [
+      "${filePath ? filePath : '/path/to/file1.ts'}",
+      "/path/to/file2.ts"
+    ],
+    "dependencies": ["Any dependencies or prerequisites"]
+  },
+  "context": {
+    "relatedFiles": ["Files that might be affected"],
+    "testStrategy": "How to test this change",
+    "hints": [
+      "Helpful hint 1",
+      "Helpful hint 2"
+    ]
+  },
+  "enhancedDescription": "A detailed, improved description for the ticket that includes technical details, context, and implementation notes"
+}
+\`\`\`
+
+**Additional Instructions:**
+1. If code is selected above, analyze it for potential issues or improvements
+2. Consider the file path and workspace context in your recommendations
+3. Be specific about which files need to be modified
+4. Include practical hints and gotchas
+5. The enhancedDescription should be suitable for updating the ticket
+
+**After you provide the JSON response, I'll automatically update the ticket with your insights!**
 `;
 
-  await vscode.env.clipboard.writeText(enhancedText);
-  vscode.window.showInformationMessage('Enhanced ticket details copied to clipboard! 🚀');
+  // Copy to clipboard
+  await vscode.env.clipboard.writeText(aiPrompt);
+  
+  // Show instruction to user
+  const action = await vscode.window.showInformationMessage(
+    '✨ Enhanced prompt copied! Paste in Cursor Chat (Cmd+L) and AI will analyze your ticket.',
+    'Open Cursor Chat',
+    'Update Ticket with Response'
+  );
+
+  if (action === 'Open Cursor Chat') {
+    // Open Cursor chat
+    vscode.commands.executeCommand('workbench.action.chat.open');
+  } else if (action === 'Update Ticket with Response') {
+    // Show instructions for updating ticket
+    await showTicketUpdateInstructions(item);
+  }
+}
+
+/**
+ * Show instructions for updating ticket with AI response
+ */
+async function showTicketUpdateInstructions(item: any) {
+  const instructions = `# 📝 Update Ticket with AI Response
+
+## Steps:
+
+1. **Paste the prompt in Cursor Chat** (Cmd+L or Ctrl+L)
+2. **Wait for AI to respond** with JSON
+3. **Copy the JSON response** from AI
+4. **Run Command:** \`OpenTasks: Update Ticket from AI Response\`
+5. **Paste the JSON** when prompted
+6. ✅ **Ticket will be automatically updated!**
+
+The ticket will be enhanced with:
+- Improved description
+- Implementation steps
+- File paths and hints
+- Complexity estimate
+- Test strategy
+`;
+
+  const panel = vscode.window.createWebviewPanel(
+    'opentasksInstructions',
+    'Update Ticket Instructions',
+    vscode.ViewColumn.Beside,
+    {}
+  );
+
+  panel.webview.html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+          padding: 20px;
+          line-height: 1.6;
+          color: var(--vscode-foreground);
+          background: var(--vscode-editor-background);
+        }
+        h1 { color: var(--vscode-textLink-foreground); }
+        h2 { color: var(--vscode-textLink-activeForeground); margin-top: 24px; }
+        code {
+          background: var(--vscode-textCodeBlock-background);
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-family: 'Courier New', monospace;
+        }
+        ol { margin-left: 20px; }
+        li { margin: 8px 0; }
+        .emoji { font-size: 1.2em; }
+      </style>
+    </head>
+    <body>
+      <h1>📝 Update Ticket with AI Response</h1>
+      
+      <h2>Steps:</h2>
+      <ol>
+        <li>📋 <strong>Paste the prompt in Cursor Chat</strong> (Cmd+L or Ctrl+L)</li>
+        <li>⏳ <strong>Wait for AI to respond</strong> with JSON structure</li>
+        <li>📄 <strong>Copy the JSON response</strong> from AI (everything between the \`\`\`json tags)</li>
+        <li>⚡ <strong>Run Command:</strong> <code>OpenTasks: Update Ticket from AI Response</code></li>
+        <li>📥 <strong>Paste the JSON</strong> when prompted</li>
+        <li>✅ <strong>Ticket will be automatically updated!</strong></li>
+      </ol>
+
+      <h2>🎯 What Gets Updated:</h2>
+      <ul>
+        <li>Enhanced description with technical details</li>
+        <li>Implementation steps and approach</li>
+        <li>File paths to modify</li>
+        <li>Complexity and time estimates</li>
+        <li>Helpful hints and gotchas</li>
+        <li>Test strategy</li>
+      </ul>
+
+      <h2>💡 Pro Tip:</h2>
+      <p>Select relevant code in your file before using "Copy & Enhance" for more accurate AI analysis!</p>
+    </body>
+    </html>
+  `;
 }
 
 /**
@@ -582,3 +743,229 @@ async function deleteTicket(context: vscode.ExtensionContext, item: any) {
   });
 }
 
+
+
+/**
+ * Update ticket from AI response (JSON)
+ */
+async function updateTicketFromAI(context: vscode.ExtensionContext) {
+  const token = await context.secrets.get(TOKEN_KEY);
+  const baseUrl = context.globalState.get<string>(BASE_URL_KEY, 'https://www.opentasks.fr');
+
+  if (!token) {
+    vscode.window.showErrorMessage('You must sign in first');
+    return;
+  }
+
+  try {
+    // Get the AI response JSON from clipboard or user input
+    const clipboardText = await vscode.env.clipboard.readText();
+    let initialValue = '';
+    
+    // Check if clipboard contains JSON
+    try {
+      JSON.parse(clipboardText);
+      initialValue = clipboardText;
+    } catch {
+      // Not JSON, leave empty
+    }
+
+    const jsonInput = await vscode.window.showInputBox({
+      prompt: 'Paste the AI JSON response here (or it may be pre-filled from clipboard)',
+      value: initialValue,
+      placeHolder: '{"analysis": {...}, "implementation": {...}, ...}',
+      ignoreFocusOut: true,
+      validateInput: (value) => {
+        if (!value.trim()) {
+          return 'JSON response is required';
+        }
+        try {
+          JSON.parse(value);
+          return null;
+        } catch {
+          return 'Invalid JSON format - make sure you copied the complete JSON from AI';
+        }
+      }
+    });
+
+    if (!jsonInput) {
+      return;
+    }
+
+    // Parse the AI response
+    const aiResponse = JSON.parse(jsonInput);
+    
+    // Validate structure
+    if (!aiResponse.analysis || !aiResponse.implementation || !aiResponse.enhancedDescription) {
+      vscode.window.showErrorMessage('Invalid AI response structure. Make sure the JSON includes: analysis, implementation, and enhancedDescription');
+      return;
+    }
+
+    // Get the client
+    const client = new OpenTasksClient(baseUrl, token);
+    
+    // Get projects
+    const projects = await client.getProjects();
+    if (projects.length === 0) {
+      vscode.window.showWarningMessage('No projects found');
+      return;
+    }
+
+    // Select project
+    const projectItems = projects.map(p => ({
+      label: p.name,
+      description: p.slug,
+      project: p,
+    }));
+
+    const selectedProject = await vscode.window.showQuickPick(projectItems, {
+      placeHolder: 'Which project is this ticket in?',
+    });
+
+    if (!selectedProject) {
+      return;
+    }
+
+    // Get tickets
+    const tickets = await client.getTickets(selectedProject.project.id);
+    
+    // Select ticket
+    const ticketItems = tickets.map(t => ({
+      label: t.title,
+      description: `#${t.id.slice(-4)} | ${t.status} | ${t.priority}`,
+      detail: t.description?.substring(0, 100),
+      ticket: t,
+    }));
+
+    const selectedTicketItem = await vscode.window.showQuickPick(ticketItems, {
+      placeHolder: 'Which ticket should be updated?',
+      matchOnDescription: true,
+      matchOnDetail: true,
+    });
+
+    if (!selectedTicketItem) {
+      return;
+    }
+
+    const ticket = selectedTicketItem.ticket;
+
+    // Build enhanced description with AI insights
+    const enhancedDescription = `${aiResponse.enhancedDescription}
+
+---
+
+## 🤖 AI Analysis
+
+**Summary:** ${aiResponse.analysis.summary}
+
+**Complexity:** ${aiResponse.analysis.complexity}
+**Estimated Time:** ${aiResponse.analysis.estimatedTime}
+
+**Risks & Challenges:**
+${aiResponse.analysis.risksAndChallenges.map((r: string) => `- ${r}`).join('\n')}
+
+## 🎯 Implementation Approach
+
+${aiResponse.implementation.approach}
+
+**Implementation Steps:**
+${aiResponse.implementation.steps.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}
+
+**Files to Modify:**
+${aiResponse.implementation.filesToModify.map((f: string) => `- \`${f}\``).join('\n')}
+
+${aiResponse.implementation.dependencies && aiResponse.implementation.dependencies.length > 0 ? `**Dependencies:**\n${aiResponse.implementation.dependencies.map((d: string) => `- ${d}`).join('\n')}\n` : ''}
+
+## 💡 Context & Hints
+
+${aiResponse.context.hints.map((h: string) => `- ${h}`).join('\n')}
+
+**Test Strategy:**
+${aiResponse.context.testStrategy}
+
+${aiResponse.context.relatedFiles && aiResponse.context.relatedFiles.length > 0 ? `\n**Related Files:**\n${aiResponse.context.relatedFiles.map((f: string) => `- \`${f}\``).join('\n')}` : ''}
+
+---
+*✨ Enhanced by Cursor AI via OpenTasks Extension*`;
+
+    // Copy to clipboard
+    await vscode.env.clipboard.writeText(enhancedDescription);
+
+    // Show success with options
+    const action = await vscode.window.showInformationMessage(
+      `✅ Enhanced description created for "${ticket.title}"!\n\n` +
+      `The enhanced description has been copied to your clipboard.\n` +
+      `You can now paste it when editing the ticket.`,
+      'Open Ticket in Browser',
+      'Show Preview'
+    );
+
+    if (action === 'Open Ticket in Browser') {
+      const url = `${baseUrl}/project/${selectedProject.project.id}/board`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    } else if (action === 'Show Preview') {
+      // Create preview panel
+      const panel = vscode.window.createWebviewPanel(
+        'ticketPreview',
+        `Preview: ${ticket.title}`,
+        vscode.ViewColumn.Beside,
+        {}
+      );
+
+      panel.webview.html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              padding: 20px;
+              line-height: 1.6;
+              color: #e5e7eb;
+              background: #1e1e1e;
+              max-width: 900px;
+              margin: 0 auto;
+            }
+            h1 { color: #a78bfa; border-bottom: 2px solid #a78bfa; padding-bottom: 10px; }
+            h2 { color: #60a5fa; margin-top: 24px; }
+            code {
+              background: #374151;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-family: 'Courier New', monospace;
+              color: #fbbf24;
+            }
+            .badge {
+              display: inline-block;
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 13px;
+              font-weight: 600;
+              margin: 4px;
+            }
+            .complexity-CRITICAL { background: #dc2626; color: white; }
+            .complexity-HIGH { background: #f87171; color: white; }
+            .complexity-MEDIUM { background: #fbbf24; color: #000; }
+            .complexity-LOW { background: #34d399; color: #000; }
+            ul, ol { margin-left: 20px; }
+            li { margin: 8px 0; }
+            hr { border: 1px solid #374151; margin: 24px 0; }
+          </style>
+        </head>
+        <body>
+          <h1>📋 ${ticket.title}</h1>
+          <div style="margin: 16px 0;">
+            <span class="badge complexity-${aiResponse.analysis.complexity}">${aiResponse.analysis.complexity}</span>
+            <span class="badge" style="background: #6366f1; color: white;">⏱️ ${aiResponse.analysis.estimatedTime}</span>
+            <span class="badge" style="background: #8b5cf6; color: white;">${ticket.priority}</span>
+          </div>
+          <div style="white-space: pre-wrap;">${enhancedDescription.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </body>
+        </html>
+      `;
+    }
+
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to process AI response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}

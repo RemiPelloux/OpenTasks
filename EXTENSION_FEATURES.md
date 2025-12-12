@@ -241,3 +241,4 @@ Your extension now has:
 ---
 
 **Enjoy your supercharged OpenTasks extension!** 💪
+
