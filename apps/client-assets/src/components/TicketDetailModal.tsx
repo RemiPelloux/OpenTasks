@@ -210,17 +210,76 @@ export function TicketDetailModal({
           </button>
         </div>
 
-        {/* Body */}
+        {/* Body - Horizontal Layout */}
         <div className="modal-body">
-          {error && (
-            <div className="mb-4 p-3 text-sm rounded-md bg-destructive/10 text-destructive border border-destructive/20">
-              {error}
-            </div>
-          )}
+          {/* Left Column: Main Content */}
+          <div className="modal-body-left">
+            {error && (
+              <div className="mb-4 p-3 text-sm rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+                {error}
+              </div>
+            )}
 
-          {/* AI Agent Status Panel - Live updates */}
-          {ticket.agentId && (
-            <div className="mb-4">
+            {/* Description */}
+            <div className="form-group">
+              <label className="form-label">Description</label>
+              {isEditing ? (
+                <textarea
+                  className="form-input"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={12}
+                  placeholder="Add task details, requirements, acceptance criteria..."
+                />
+              ) : (
+                <div className="p-3 rounded-md bg-muted min-h-[300px] text-sm whitespace-pre-wrap">
+                  {ticket.description || (
+                    <span className="text-muted-foreground">No description</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Priority & Status Row */}
+            {isEditing && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-group">
+                  <label className="form-label">Priority</label>
+                  <select
+                    className="form-input"
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value as Priority)}
+                  >
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="URGENT">Urgent</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Status</label>
+                  <select
+                    className="form-input"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as ColumnId)}
+                    disabled={isProcessing}
+                  >
+                    <option value="BACKLOG">Backlog</option>
+                    <option value="TODO">To Do</option>
+                    <option value="HANDLE">Handle (AI)</option>
+                    <option value="TO_REVIEW">To Review</option>
+                    <option value="DONE">Done</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Agent Status & Metadata */}
+          <div className="modal-body-right">
+            {/* AI Agent Status Panel - Live updates */}
+            {ticket.agentId && (
               <AgentStatusPanel 
                 agentId={ticket.agentId}
                 ticketId={ticket.id}
@@ -237,137 +296,100 @@ export function TicketDetailModal({
                   onClose();
                 }}
               />
-            </div>
-          )}
+            )}
 
-          {/* Fallback AI Processing Status (when no agentId yet) */}
-          {isProcessing && !ticket.agentId && (
-            <div className="mb-4 p-4 rounded-md bg-status-processing/10 border border-status-processing/20">
-              <div className="flex items-center gap-2 text-status-processing">
-                <div className="ai-spinner" />
-                <span className="font-medium">
-                  {ticket.status === 'HANDLE'
-                    ? 'Queued for AI Processing'
-                    : 'AI is working on this ticket...'}
-                </span>
-              </div>
-              {ticket.status === 'AI_PROCESSING' && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  The Cursor Agent is implementing this task. Do not modify while processing.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* PR Link (shown only if not using AgentStatusPanel) */}
-          {ticket.prLink && !ticket.agentId && (
-            <div className="mb-4 p-4 rounded-md bg-status-success/10 border border-status-success/20">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-status-success">
-                  Pull Request Ready
-                </span>
-                <a
-                  href={ticket.prLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary h-8 px-3 text-sm"
-                >
-                  View PR →
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* AI Summary (shown only if not using AgentStatusPanel) */}
-          {ticket.aiSummary && !ticket.agentId && (
-            <div className="mb-4 p-4 rounded-md bg-muted">
-              <h4 className="font-medium mb-2">AI Summary</h4>
-              <p className="text-sm text-muted-foreground">{ticket.aiSummary}</p>
-            </div>
-          )}
-
-          {/* Description */}
-          <div className="form-group">
-            <label className="form-label">Description</label>
-            {isEditing ? (
-              <textarea
-                className="form-input"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={6}
-                placeholder="Add task details, requirements, acceptance criteria..."
-              />
-            ) : (
-              <div className="p-3 rounded-md bg-muted min-h-[100px] text-sm whitespace-pre-wrap">
-                {ticket.description || (
-                  <span className="text-muted-foreground">No description</span>
+            {/* Fallback AI Processing Status (when no agentId yet) */}
+            {isProcessing && !ticket.agentId && (
+              <div className="p-4 rounded-md bg-status-processing/10 border border-status-processing/20">
+                <div className="flex items-center gap-2 text-status-processing">
+                  <div className="ai-spinner" />
+                  <span className="font-medium">
+                    {ticket.status === 'HANDLE'
+                      ? 'Queued for AI Processing'
+                      : 'AI is working on this ticket...'}
+                  </span>
+                </div>
+                {ticket.status === 'AI_PROCESSING' && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    The Cursor Agent is implementing this task. Do not modify while processing.
+                  </p>
                 )}
               </div>
             )}
-          </div>
 
-          {/* Priority & Status Row */}
-          {isEditing && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="form-group">
-                <label className="form-label">Priority</label>
-                <select
-                  className="form-input"
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as Priority)}
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="URGENT">Urgent</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Status</label>
-                <select
-                  className="form-input"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as ColumnId)}
-                  disabled={isProcessing}
-                >
-                  <option value="BACKLOG">Backlog</option>
-                  <option value="TODO">To Do</option>
-                  <option value="HANDLE">Handle (AI)</option>
-                  <option value="TO_REVIEW">To Review</option>
-                  <option value="DONE">Done</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Meta Info */}
-          <div className="mt-6 pt-4 border-t border-border">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Created:</span>
-                <span className="ml-2">
-                  {new Date(ticket.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Updated:</span>
-                <span className="ml-2">
-                  {new Date(ticket.updatedAt).toLocaleDateString()}
-                </span>
-              </div>
-              {ticket.assignee && (
-                <div>
-                  <span className="text-muted-foreground">Assignee:</span>
-                  <span className="ml-2">{ticket.assignee.name}</span>
+            {/* PR Link (shown only if not using AgentStatusPanel) */}
+            {ticket.prLink && !ticket.agentId && (
+              <div className="p-4 rounded-md bg-status-success/10 border border-status-success/20">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-status-success">
+                    Pull Request Ready
+                  </span>
+                  <a
+                    href={ticket.prLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary h-8 px-3 text-sm"
+                  >
+                    View PR →
+                  </a>
                 </div>
-              )}
-              {ticket.createdBy && (
-                <div>
-                  <span className="text-muted-foreground">Created by:</span>
-                  <span className="ml-2">{ticket.createdBy.name}</span>
+              </div>
+            )}
+
+            {/* AI Summary (shown only if not using AgentStatusPanel) */}
+            {ticket.aiSummary && !ticket.agentId && (
+              <div className="p-4 rounded-md bg-muted">
+                <h4 className="font-medium mb-2">AI Summary</h4>
+                <p className="text-sm text-muted-foreground">{ticket.aiSummary}</p>
+              </div>
+            )}
+
+            {/* Meta Info Card */}
+            <div className="p-4 rounded-md bg-muted border border-border">
+              <h4 className="font-medium mb-3 text-sm">Details</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Priority:</span>
+                  <span className={`ticket-priority-pill ${
+                    ticket.priority === 'LOW' ? 'priority-low' :
+                    ticket.priority === 'MEDIUM' ? 'priority-medium' :
+                    ticket.priority === 'HIGH' ? 'priority-high' : 'priority-urgent'
+                  }`}>
+                    {ticket.priority}
+                  </span>
                 </div>
-              )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status:</span>
+                  <span className={`status-badge status-${ticket.status.toLowerCase()}`}>
+                    {statusLabels[ticket.status]}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">ID:</span>
+                  <code className="text-xs">#{ticket.id.slice(-8)}</code>
+                </div>
+                <hr className="border-border my-2" />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Created:</span>
+                  <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Updated:</span>
+                  <span>{new Date(ticket.updatedAt).toLocaleDateString()}</span>
+                </div>
+                {ticket.assignee && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Assignee:</span>
+                    <span>{ticket.assignee.name}</span>
+                  </div>
+                )}
+                {ticket.createdBy && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Created by:</span>
+                    <span>{ticket.createdBy.name}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

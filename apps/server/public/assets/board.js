@@ -1505,117 +1505,140 @@ function TicketDetailModal({
               )
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-body", children: [
-              error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-4 p-3 text-sm rounded-md bg-destructive/10 text-destructive border border-destructive/20", children: error }),
-              ticket.agentId && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                AgentStatusPanel,
-                {
-                  agentId: ticket.agentId,
-                  ticketId: ticket.id,
-                  ticketTitle: ticket.title,
-                  ticketStatus: ticket.status,
-                  onStatusChange: handleAgentStatusChange,
-                  onFollowupSent: () => {
-                    onUpdate({ ...ticket, status: "AI_PROCESSING" });
-                  },
-                  onValidate: () => {
-                    onUpdate({ ...ticket, status: "DONE" });
-                    onClose();
-                  }
-                }
-              ) }),
-              isProcessing && !ticket.agentId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4 p-4 rounded-md bg-status-processing/10 border border-status-processing/20", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-status-processing", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ai-spinner" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-medium", children: ticket.status === "HANDLE" ? "Queued for AI Processing" : "AI is working on this ticket..." })
-                ] }),
-                ticket.status === "AI_PROCESSING" && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-2", children: "The Cursor Agent is implementing this task. Do not modify while processing." })
-              ] }),
-              ticket.prLink && !ticket.agentId && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-4 p-4 rounded-md bg-status-success/10 border border-status-success/20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-medium text-status-success", children: "Pull Request Ready" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "a",
-                  {
-                    href: ticket.prLink,
-                    target: "_blank",
-                    rel: "noopener noreferrer",
-                    className: "btn btn-primary h-8 px-3 text-sm",
-                    children: "View PR →"
-                  }
-                )
-              ] }) }),
-              ticket.aiSummary && !ticket.agentId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-4 p-4 rounded-md bg-muted", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "font-medium mb-2", children: "AI Summary" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground", children: ticket.aiSummary })
-              ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "form-group", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "form-label", children: "Description" }),
-                isEditing ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "textarea",
-                  {
-                    className: "form-input",
-                    value: description,
-                    onChange: (e) => setDescription(e.target.value),
-                    rows: 6,
-                    placeholder: "Add task details, requirements, acceptance criteria..."
-                  }
-                ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 rounded-md bg-muted min-h-[100px] text-sm whitespace-pre-wrap", children: ticket.description || /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "No description" }) })
-              ] }),
-              isEditing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-body-left", children: [
+                error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mb-4 p-3 text-sm rounded-md bg-destructive/10 text-destructive border border-destructive/20", children: error }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "form-group", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "form-label", children: "Priority" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "select",
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "form-label", children: "Description" }),
+                  isEditing ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "textarea",
                     {
                       className: "form-input",
-                      value: priority,
-                      onChange: (e) => setPriority(e.target.value),
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "LOW", children: "Low" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "MEDIUM", children: "Medium" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "HIGH", children: "High" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "URGENT", children: "Urgent" })
-                      ]
+                      value: description,
+                      onChange: (e) => setDescription(e.target.value),
+                      rows: 12,
+                      placeholder: "Add task details, requirements, acceptance criteria..."
                     }
-                  )
+                  ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 rounded-md bg-muted min-h-[300px] text-sm whitespace-pre-wrap", children: ticket.description || /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "No description" }) })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "form-group", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "form-label", children: "Status" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "select",
-                    {
-                      className: "form-input",
-                      value: status,
-                      onChange: (e) => setStatus(e.target.value),
-                      disabled: isProcessing,
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "BACKLOG", children: "Backlog" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "TODO", children: "To Do" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "HANDLE", children: "Handle (AI)" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "TO_REVIEW", children: "To Review" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "DONE", children: "Done" })
-                      ]
-                    }
-                  )
+                isEditing && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "form-group", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "form-label", children: "Priority" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "select",
+                      {
+                        className: "form-input",
+                        value: priority,
+                        onChange: (e) => setPriority(e.target.value),
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "LOW", children: "Low" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "MEDIUM", children: "Medium" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "HIGH", children: "High" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "URGENT", children: "Urgent" })
+                        ]
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "form-group", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("label", { className: "form-label", children: "Status" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "select",
+                      {
+                        className: "form-input",
+                        value: status,
+                        onChange: (e) => setStatus(e.target.value),
+                        disabled: isProcessing,
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "BACKLOG", children: "Backlog" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "TODO", children: "To Do" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "HANDLE", children: "Handle (AI)" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "TO_REVIEW", children: "To Review" }),
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "DONE", children: "Done" })
+                        ]
+                      }
+                    )
+                  ] })
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-6 pt-4 border-t border-border", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-2 gap-4 text-sm", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Created:" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ml-2", children: new Date(ticket.createdAt).toLocaleDateString() })
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-body-right", children: [
+                ticket.agentId && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  AgentStatusPanel,
+                  {
+                    agentId: ticket.agentId,
+                    ticketId: ticket.id,
+                    ticketTitle: ticket.title,
+                    ticketStatus: ticket.status,
+                    onStatusChange: handleAgentStatusChange,
+                    onFollowupSent: () => {
+                      onUpdate({ ...ticket, status: "AI_PROCESSING" });
+                    },
+                    onValidate: () => {
+                      onUpdate({ ...ticket, status: "DONE" });
+                      onClose();
+                    }
+                  }
+                ),
+                isProcessing && !ticket.agentId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-md bg-status-processing/10 border border-status-processing/20", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-status-processing", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "ai-spinner" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-medium", children: ticket.status === "HANDLE" ? "Queued for AI Processing" : "AI is working on this ticket..." })
+                  ] }),
+                  ticket.status === "AI_PROCESSING" && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground mt-2", children: "The Cursor Agent is implementing this task. Do not modify while processing." })
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Updated:" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ml-2", children: new Date(ticket.updatedAt).toLocaleDateString() })
+                ticket.prLink && !ticket.agentId && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 rounded-md bg-status-success/10 border border-status-success/20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-medium text-status-success", children: "Pull Request Ready" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "a",
+                    {
+                      href: ticket.prLink,
+                      target: "_blank",
+                      rel: "noopener noreferrer",
+                      className: "btn btn-primary h-8 px-3 text-sm",
+                      children: "View PR →"
+                    }
+                  )
+                ] }) }),
+                ticket.aiSummary && !ticket.agentId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-md bg-muted", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "font-medium mb-2", children: "AI Summary" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground", children: ticket.aiSummary })
                 ] }),
-                ticket.assignee && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Assignee:" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ml-2", children: ticket.assignee.name })
-                ] }),
-                ticket.createdBy && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Created by:" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ml-2", children: ticket.createdBy.name })
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-4 rounded-md bg-muted border border-border", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "font-medium mb-3 text-sm", children: "Details" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 text-sm", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Priority:" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `ticket-priority-pill ${ticket.priority === "LOW" ? "priority-low" : ticket.priority === "MEDIUM" ? "priority-medium" : ticket.priority === "HIGH" ? "priority-high" : "priority-urgent"}`, children: ticket.priority })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Status:" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-badge status-${ticket.status.toLowerCase()}`, children: statusLabels[ticket.status] })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "ID:" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("code", { className: "text-xs", children: [
+                        "#",
+                        ticket.id.slice(-8)
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("hr", { className: "border-border my-2" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Created:" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: new Date(ticket.createdAt).toLocaleDateString() })
+                    ] }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Updated:" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: new Date(ticket.updatedAt).toLocaleDateString() })
+                    ] }),
+                    ticket.assignee && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Assignee:" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.assignee.name })
+                    ] }),
+                    ticket.createdBy && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-muted-foreground", children: "Created by:" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: ticket.createdBy.name })
+                    ] })
+                  ] })
                 ] })
-              ] }) })
+              ] })
             ] }),
             confirmAction && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "confirm-dialog", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "confirm-dialog-content", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "confirm-dialog-message", children: confirmAction === "delete" ? `Are you sure you want to delete "${ticket.title}"? This action cannot be undone.` : `Archive "${ticket.title}"? It will be moved to the Archive page.` }),
